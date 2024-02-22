@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+// BEHAVIOR : input a string and return a link list of t_token
+
 typedef enum {
     TOKEN_LEFT_PAREN, // (
     TOKEN_RIGHT_PAREN, // )
