@@ -3,16 +3,27 @@
 #include <string.h>
 
 typedef enum {
-    TOKEN_LEFT_PAREN,
-    TOKEN_RIGHT_PAREN,
-    TOKEN_COMMAND,
-    TOKEN_ARGUMENT,
-    TOKEN_LOGICAL_AND,
-    TOKEN_PIPE,
-    TOKEN_REDIRECTION_OUT,
-    TOKEN_REDIRECTION_APPEND,
-    TOKEN_STRING
+    TOKEN_LEFT_PAREN, // (
+    TOKEN_RIGHT_PAREN, // )
+    TOKEN_COMMAND, // Command name
+    TOKEN_ARGUMENT, // Argument
+    TOKEN_LOGICAL_AND, // &&
+    TOKEN_LOGICAL_OR, // ||
+    TOKEN_PIPE, // |
+    TOKEN_REDIRECTION_IN, // <
+    TOKEN_REDIRECTION_OUT, // >
+    TOKEN_REDIRECTION_APPEND, // >>
+    TOKEN_REDIRECTION_ERROR, // 2>
+    TOKEN_HERE_DOCUMENT, // <<
+	TOKEN_LIMITER, // Delimiter for here-document
+    TOKEN_WILDCARD, // *
+    TOKEN_ENV_VAR, // $VAR
+    TOKEN_EXIT_STATUS, // $?
+	TOKEN_STRING, // Generic string
+    TOKEN_SINGLE_QUOTE_STRING, // '
+    TOKEN_DOUBLE_QUOTE_STRING // "
 } TokenType;
+
 
 typedef struct Token {
     TokenType type;
