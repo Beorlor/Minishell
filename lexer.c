@@ -24,6 +24,10 @@ typedef enum {
     TOKEN_DOUBLE_QUOTE_STRING // "
 } TokenType;
 
+// pas encore tout definie
+// si on rencontre "$PATH"
+// on fait un token DOUBLE QUOTE avec le string dedans et on vera plus tard pour la gestion (il faudra reanaliser le string)
+// ou alors on utilise double quote comme un indicateur et on le stock comme : TOKEN_DOUBLE_QUOTE_STRING / TOKEN_ENV_VAR / TOKEN_DOUBLE_QUOTE_STRING
 
 typedef struct Token {
     TokenType type;
