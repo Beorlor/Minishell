@@ -26,6 +26,8 @@ typedef enum {
     TOKEN_DOUBLE_QUOTE_STRING // "
 } TokenType;
 
+//gere ton le ; pour avoir plusieurs commande sur une meme ligne ????
+
 // pas encore tout definie
 // si on rencontre "$PATH"
 // on fait un token DOUBLE QUOTE avec le string dedans et on vera plus tard pour la gestion (il faudra reanaliser le string)
