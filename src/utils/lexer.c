@@ -26,7 +26,7 @@ typedef enum {
     TOKEN_DOUBLE_QUOTE_STRING // "
 } TokenType;
 
-//gere ton le ; pour avoir plusieurs commande sur une meme ligne ????
+//gere ton le ; pour avoir plusieurs commande sur une meme ligne ???? Je pense que ce serait mieux oui mais toujours du taff en + (thomas)
 
 // pas encore tout definie
 // si on rencontre "$PATH"
