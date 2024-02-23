@@ -43,22 +43,11 @@ void  write_terminal_title()
 
 void  edit_shlvl(char **env)
 {
-    char *new_shlvl;
-
     while (*env) 
     {
         if (ft_strncmp(*env, "SHLVL=", 6) == 0) 
         {
-            new_shlvl = ft_itoa(ft_atoi(*env + 6) + 1);
-            break;
-        }
-        env++;
-    }
-    while (*env) 
-    {
-        if (ft_strncmp(*env, "SHLVL=", 6) == 0) 
-        {
-            ft_strcpy(*env + 6, new_shlvl);
+            ft_strcpy(*env + 6, ft_itoa(ft_atoi(*env + 6) + 1));
             break;
         }
         env++;
