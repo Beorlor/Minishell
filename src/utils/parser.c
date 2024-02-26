@@ -10,6 +10,8 @@ typedef enum {
     NODE_LOGICAL_OR    // 4 - Représente l'opérateur logique 'OU'
 } NodeType;
 
+// rajouter les ()
+
 typedef struct ASTNode {
     NodeType type;
     char* value; // Stocke la commande ou l'argument
