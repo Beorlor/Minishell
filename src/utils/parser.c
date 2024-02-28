@@ -3,11 +3,11 @@
 #include <string.h>
 
 typedef enum {
-    NODE_COMMAND,      // 0 - Représente une commande
-    NODE_ARGUMENT,     // 1 - Représente un argument de la commande
-    NODE_LOGICAL_AND,  // 2 - Représente l'opérateur logique 'ET'
-    NODE_PIPE,         // 3 - Représente un pipeline entre deux commandes
-    NODE_LOGICAL_OR    // 4 - Représente l'opérateur logique 'OU'
+    NODE_COMMAND,
+    NODE_LOGICAL_AND,
+    NODE_PIPE,
+    NODE_LOGICAL_OR,
+	NODE_PARENTHESE
 } NodeType;
 
 // rajouter les ()
