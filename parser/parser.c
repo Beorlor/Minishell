@@ -1,61 +1,74 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include "parser.h"
 
-typedef enum {
-    NODE_COMMAND,
-    NODE_LOGICAL_AND,
-	NODE_LOGICAL_OR,
-    NODE_PIPE,
-	NODE_PARENTHESE
-} NodeType;
-
-
-typedef struct ASTNode {
-    NodeType type;
-    char* value; // Stocke la commande ou l'argument
-    struct ASTNode* left; // Utilisé pour les arbres binaires (non utilisé dans cet exemple)
-    struct ASTNode* right; // Chaînage des arguments ou des opérations
-} ASTNode;
-
-ASTNode* createASTNode(NodeType type, const char* value) {
+ASTNode* createASTNode(NodeType type, char* value) {
     ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     if (!node) {
-        perror("Allocation error");
+        perror("Failed to allocate memory for ASTNode");
         exit(EXIT_FAILURE);
     }
     node->type = type;
-    node->value = value ? strdup(value) : NULL;
+    node->value = value;
     node->left = NULL;
     node->right = NULL;
     return node;
 }
 
-void addArgument(ASTNode* commandNode, ASTNode* argNode) {
-    ASTNode* current = commandNode;
-    while (current->right != NULL) {
-        current = current->right;
+StartNode* createStartNode() {
+    StartNode* startNode = (StartNode*)malloc(sizeof(StartNode));
+    if (!startNode) {
+        perror("Failed to allocate memory for StartNode");
+        exit(EXIT_FAILURE);
     }
-    current->right = argNode; // Ajoute l'argument à la fin de la chaîne
+    startNode->children = NULL;
+    startNode->childCount = 0;
+    return startNode;
+}
+
+void addChildToStartNode(StartNode* startNode, ASTNode* child) {
+    startNode->childCount++;
+    startNode->children = realloc(startNode->children, sizeof(ASTNode*) * startNode->childCount);
+    if (!startNode->children) {
+        perror("Failed to reallocate memory for children in StartNode");
+        exit(EXIT_FAILURE);
+    }
+    startNode->children[startNode->childCount - 1] = child;
 }
 
 void freeAST(ASTNode* node) {
-    if (node == NULL) return;
-    freeAST(node->left);
-    freeAST(node->right);
-    if (node->value) free(node->value);
-    free(node);
+    if (node) {
+        freeAST(node->left);
+        freeAST(node->right);
+        free(node);
+    }
+}
+
+void freeStartNode(StartNode* startNode) {
+    for (int i = 0; i < startNode->childCount; i++) {
+        freeAST(startNode->children[i]);
+    }
+    free(startNode->children);
+    free(startNode);
+}
+
+void	free_lexer(Token **lexer)
+{
+	Token *current = *lexer;
+	Token *next = (*lexer)->next;
+
+	while (current->next)
+	{
+		next = current->next;
+		free(current->value);
+		free(current);
+		current = next;
+	}
+	*lexer = NULL;
 }
 
 int main() {
-    // Exemple de création d'un nœud de commande avec des arguments
-    ASTNode* cmd = createASTNode(NODE_COMMAND, "cmd");
-    addArgument(cmd, createASTNode(NODE_ARGUMENT, "arg1"));
-    addArgument(cmd, createASTNode(NODE_ARGUMENT, "arg2"));
-    addArgument(cmd, createASTNode(NODE_ARGUMENT, "arg3"));
+	Token *lexer = lexer;
 
-    // Libération de la mémoire
-    freeAST(cmd);
 
+	free_lexer(&lexer);
     return 0;
 }

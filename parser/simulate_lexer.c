@@ -1,24 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-
-typedef enum {
-    TOKEN_PAREN_OPEN,
-    TOKEN_PAREN_CLOSE,
-    TOKEN_COMMAND,
-    TOKEN_LOGICAL_AND,
-    TOKEN_LOGICAL_OR,
-    TOKEN_PIPE,
-    TOKEN_REDIRECTION_IN,
-    TOKEN_REDIRECTION_OUT,
-    TOKEN_REDIRECTION_APPEND,
-    TOKEN_WILDCARD,
-} TokenType;
-
-typedef struct Token {
-    TokenType type;
-    char* value;
-    struct Token* next;
-} Token;
+#include "parser.h"
 
 Token* createToken(TokenType type, char* value) {
     Token* newToken = (Token*)malloc(sizeof(Token));
@@ -68,7 +48,7 @@ void printTokens(Token* head) {
     }
 }
 
-int main() {
+Token *lexer() {
     Token* tokens = NULL;
 
     // Simulate tokens for "ls -l | grep "txt" > files.txt"
@@ -82,5 +62,5 @@ int main() {
 
     // Free the allocated memory (not shown for brevity)
 
-    return 0;
+    return (tokens);
 }
