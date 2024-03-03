@@ -42,6 +42,7 @@ typedef struct ASTNode {
     struct ASTNode* right; // Chaining arguments or operations
 } ASTNode;
 
+// change start node to match all the need (tablette jb)
 typedef struct StartNode {
     struct ASTNode** children; // Array of pointers to child nodes (logical AND/OR nodes)
     int childCount; // Number of children
