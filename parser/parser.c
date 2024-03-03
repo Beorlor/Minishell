@@ -5,12 +5,11 @@
 typedef enum {
     NODE_COMMAND,
     NODE_LOGICAL_AND,
+	NODE_LOGICAL_OR,
     NODE_PIPE,
-    NODE_LOGICAL_OR,
 	NODE_PARENTHESE
 } NodeType;
 
-// rajouter les ()
 
 typedef struct ASTNode {
     NodeType type;
