@@ -1,54 +1,118 @@
-#include "parser.h"
+ #include "parser.h"
 
-ASTNode* createASTNode(NodeType type, char* value) {
-    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
-    if (!node) {
-        perror("Failed to allocate memory for ASTNode");
-        exit(EXIT_FAILURE);
+// Function to count the number of logical nodes (&& and ||)
+int countLogicalNodes(Token* tokens) {
+    int count = 0;
+    Token* current = tokens;
+    while (current != NULL) {
+        if (current->type == TOKEN_LOGICAL_AND || current->type == TOKEN_LOGICAL_OR) {
+            count++;
+        }
+        current = current->next;
     }
-    node->type = type;
-    node->value = value;
-    node->left = NULL;
-    node->right = NULL;
-    return node;
+    return count;
 }
 
-StartNode* createStartNode() {
+// Function to create a StartNode and allocate memory for logical nodes if present
+StartNode* createAndSetupStartNode(Token* tokens) {
     StartNode* startNode = (StartNode*)malloc(sizeof(StartNode));
     if (!startNode) {
         perror("Failed to allocate memory for StartNode");
         exit(EXIT_FAILURE);
     }
-    startNode->children = NULL;
+
+    // Initially set the hasLogical flag to false and no children
+    startNode->hasLogical = false;
     startNode->childCount = 0;
+    startNode->children = NULL;
+
+    // Count the number of logical nodes
+    int logicalNodeCount = countLogicalNodes(tokens);
+
+    // If logical nodes are present, allocate memory for the array of children
+    if (logicalNodeCount > 0) {
+        startNode->hasLogical = true;
+        startNode->childCount = logicalNodeCount;
+        startNode->children = (ASTNode**)malloc(sizeof(ASTNode*) * logicalNodeCount);
+        if (!startNode->children) {
+            perror("Failed to allocate memory for logical node pointers in StartNode");
+            free(startNode);
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        // If no logical nodes, set childCount to 1 for the single command/pipeline
+        startNode->childCount = 1;
+    }
+
     return startNode;
 }
 
-void addChildToStartNode(StartNode* startNode, ASTNode* child) {
-    startNode->childCount++;
-    startNode->children = realloc(startNode->children, sizeof(ASTNode*) * startNode->childCount);
-    if (!startNode->children) {
-        perror("Failed to reallocate memory for children in StartNode");
+// Function to create a logical node (&&, ||, or HOLDER)
+LogicalNode* createLogicalNode(NodeType type) {
+    LogicalNode* node = (LogicalNode*)malloc(sizeof(LogicalNode));
+    if (!node) {
+        perror("Failed to allocate memory for LogicalNode");
         exit(EXIT_FAILURE);
     }
-    startNode->children[startNode->childCount - 1] = child;
+    node->type = type;
+    node->leftInput = NULL;
+    node->leftOutput = NULL;
+    node->rightInput = NULL;
+    node->rightOutput = NULL;
+    node->left = NULL;
+    node->right = NULL;
+    return node;
 }
 
-void freeAST(ASTNode* node) {
-    if (node) {
-        freeAST(node->left);
-        freeAST(node->right);
-        free(node);
+// Function to add logical nodes to the StartNode's children array, or create a HOLDER node
+void populateLogicalNodes(StartNode* startNode, Token* tokens) {
+    if (startNode->hasLogical) {
+        // Allocate logical nodes based on the tokens
+        int index = 0;
+        Token* currentToken = tokens;
+        while (currentToken != NULL && index < startNode->childCount) {
+            if (currentToken->type == TOKEN_LOGICAL_AND || currentToken->type == TOKEN_LOGICAL_OR) {
+                NodeType type = (currentToken->type == TOKEN_LOGICAL_AND) ? NODE_LOGICAL_AND : NODE_LOGICAL_OR;
+                startNode->children[index] = (ASTNode*)createLogicalNode(type);
+                index++;
+            }
+            currentToken = currentToken->next;
+        }
+    } else {
+        // No logical operators found, so create a HOLDER logical node
+        startNode->children[0] = (ASTNode*)createLogicalNode(NODE_LOGICAL_HOLDER);
     }
 }
 
-void freeStartNode(StartNode* startNode) {
-    for (int i = 0; i < startNode->childCount; i++) {
-        freeAST(startNode->children[i]);
+// Function to get the string representation of the node type
+const char* getNodeTypeString(NodeType type) {
+    switch (type) {
+        case NODE_COMMAND: return "COMMAND";
+        case NODE_LOGICAL_AND: return "LOGICAL_AND";
+        case NODE_LOGICAL_OR: return "LOGICAL_OR";
+        case NODE_PIPE: return "PIPE";
+        case NODE_LOGICAL_HOLDER: return "LOGICAL_HOLDER";
+        default: return "UNKNOWN";
     }
-    free(startNode->children);
-    free(startNode);
 }
+
+// Function to print logical nodes stored in the StartNode
+void printLogicalNodes(const StartNode* startNode) {
+    if (startNode->hasLogical) {
+        printf("StartNode has %d logical nodes:\n", startNode->childCount);
+        for (int i = 0; i < startNode->childCount; ++i) {
+            LogicalNode* logicalNode = (LogicalNode*)(startNode->children[i]);
+            printf("Node %d: Type: %s\n", i, getNodeTypeString(logicalNode->type));
+        }
+    } else {
+        printf("StartNode has a logical holder node.\n");
+        if (startNode->childCount == 1) {
+            LogicalNode* holderNode = (LogicalNode*)(startNode->children[0]);
+            printf("Holder Node: Type: %s\n", getNodeTypeString(holderNode->type));
+        }
+    }
+}
+
 
 void	free_lexer(Token **lexer)
 {
@@ -66,9 +130,12 @@ void	free_lexer(Token **lexer)
 }
 
 int main() {
-	Token *lexer = lexer;
+	Token *token = lexer();
+	StartNode *StartNode = createAndSetupStartNode(token);
+	populateLogicalNodes(StartNode, token);
 
+	printLogicalNodes(StartNode);
 
-	free_lexer(&lexer);
+	free_lexer(&token);
     return 0;
 }
