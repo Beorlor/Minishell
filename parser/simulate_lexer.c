@@ -56,6 +56,8 @@ Token *lexer() {
     appendToken(&tokens, TOKEN_PIPE, "|");
     appendToken(&tokens, TOKEN_COMMAND, "grep \"txt\"");
     appendToken(&tokens, TOKEN_REDIRECTION_OUT, "> files.txt");
+	appendToken(&tokens, TOKEN_LOGICAL_AND, "&&");
+	appendToken(&tokens, TOKEN_LOGICAL_OR, "||");
 
     printTokens(tokens);
 

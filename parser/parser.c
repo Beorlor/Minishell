@@ -33,17 +33,15 @@ StartNode* createAndSetupStartNode(Token* tokens) {
     if (logicalNodeCount > 0) {
         startNode->hasLogical = true;
         startNode->childCount = logicalNodeCount;
-        startNode->children = (ASTNode**)malloc(sizeof(ASTNode*) * logicalNodeCount);
-        if (!startNode->children) {
-            perror("Failed to allocate memory for logical node pointers in StartNode");
-            free(startNode);
-            exit(EXIT_FAILURE);
-        }
     } else {
-        // If no logical nodes, set childCount to 1 for the single command/pipeline
         startNode->childCount = 1;
     }
-
+	startNode->children = (ASTNode**)malloc(sizeof(ASTNode*) * startNode->childCount);
+	if (!startNode->children) {
+		perror("Failed to allocate memory for logical node pointers in StartNode");
+		free(startNode);
+		exit(EXIT_FAILURE);
+	}
     return startNode;
 }
 
@@ -122,7 +120,7 @@ void	free_lexer(Token **lexer)
 	while (current->next)
 	{
 		next = current->next;
-		free(current->value);
+		//free(current->value);
 		free(current);
 		current = next;
 	}
