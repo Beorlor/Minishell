@@ -46,6 +46,7 @@ void printTokens(Token* head) {
         printf("Type: %s, Value: %s\n", getTokenTypeName(head->type), head->value);
         head = head->next;
     }
+	printf("\n");
 }
 
 Token *lexer() {

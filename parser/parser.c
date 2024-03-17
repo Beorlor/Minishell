@@ -63,7 +63,7 @@ LogicalNode* createLogicalNode(NodeType type) {
 }
 
 // Function to add logical nodes to the StartNode's children array, or create a HOLDER node
-void populateLogicalNodes(StartNode* startNode, Token* tokens) {
+void addLogicalNodeToStartNode(StartNode* startNode, Token* tokens) {
     if (startNode->hasLogical) {
         // Allocate logical nodes based on the tokens
         int index = 0;
@@ -130,7 +130,7 @@ void	free_lexer(Token **lexer)
 int main() {
 	Token *token = lexer();
 	StartNode *StartNode = createAndSetupStartNode(token);
-	populateLogicalNodes(StartNode, token);
+	addLogicalNodeToStartNode(StartNode, token);
 
 	printLogicalNodes(StartNode);
 
