@@ -50,15 +50,17 @@ typedef struct LogicalNode {
     NodeType type; // NODE_LOGICAL_AND, NODE_LOGICAL_OR, or NODE_LOGICAL_HOLDER
     char *leftInput;
 	char *leftOutput;
+	char *leftAppend;
     char *rightInput;
 	char *rightOutput;
+	char *rightAppend;
     struct ASTNode *left; // Left subtree (commands and pipes)
     struct ASTNode *right; // Right subtree (commands and pipes)
 } LogicalNode;
 
 // Define StartNode structure
 typedef struct StartNode {
-    ASTNode **children; // Array of pointers to child nodes (logical AND/OR nodes)
+    LogicalNode **children; // Array of pointers to child nodes (logical AND/OR nodes)
     int childCount; // Number of children
     bool hasLogical; // Boolean to indicate if there are logical nodes
 } StartNode;

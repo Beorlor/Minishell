@@ -56,9 +56,11 @@ Token *lexer() {
     appendToken(&tokens, TOKEN_COMMAND, "ls -l");
     appendToken(&tokens, TOKEN_PIPE, "|");
     appendToken(&tokens, TOKEN_COMMAND, "grep \"txt\"");
-    appendToken(&tokens, TOKEN_REDIRECTION_OUT, "> files.txt");
+    appendToken(&tokens, TOKEN_REDIRECTION_OUT, "files1.txt");
 	appendToken(&tokens, TOKEN_LOGICAL_AND, "&&");
+	appendToken(&tokens, TOKEN_REDIRECTION_IN, "files2.txt");
 	appendToken(&tokens, TOKEN_LOGICAL_OR, "||");
+	appendToken(&tokens, TOKEN_REDIRECTION_APPEND, "files3.txt");
 
     printTokens(tokens);
 

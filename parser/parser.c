@@ -36,7 +36,7 @@ StartNode* createAndSetupStartNode(Token* tokens) {
     } else {
         startNode->childCount = 1;
     }
-	startNode->children = (ASTNode**)malloc(sizeof(ASTNode*) * startNode->childCount);
+	startNode->children = (LogicalNode**)malloc(sizeof(LogicalNode*) * startNode->childCount);
 	if (!startNode->children) {
 		perror("Failed to allocate memory for logical node pointers in StartNode");
 		free(startNode);
@@ -55,8 +55,10 @@ LogicalNode* createLogicalNode(NodeType type) {
     node->type = type;
     node->leftInput = NULL;
     node->leftOutput = NULL;
+	node->leftAppend = NULL;
     node->rightInput = NULL;
     node->rightOutput = NULL;
+	node->rightAppend = NULL;
     node->left = NULL;
     node->right = NULL;
     return node;
@@ -71,14 +73,14 @@ void addLogicalNodeToStartNode(StartNode* startNode, Token* tokens) {
         while (currentToken != NULL && index < startNode->childCount) {
             if (currentToken->type == TOKEN_LOGICAL_AND || currentToken->type == TOKEN_LOGICAL_OR) {
                 NodeType type = (currentToken->type == TOKEN_LOGICAL_AND) ? NODE_LOGICAL_AND : NODE_LOGICAL_OR;
-                startNode->children[index] = (ASTNode*)createLogicalNode(type);
+                startNode->children[index] = createLogicalNode(type);
                 index++;
             }
             currentToken = currentToken->next;
         }
     } else {
         // No logical operators found, so create a HOLDER logical node
-        startNode->children[0] = (ASTNode*)createLogicalNode(NODE_LOGICAL_HOLDER);
+        startNode->children[0] = createLogicalNode(NODE_LOGICAL_HOLDER);
     }
 }
 
@@ -94,23 +96,78 @@ const char* getNodeTypeString(NodeType type) {
     }
 }
 
-// Function to print logical nodes stored in the StartNode
+void assignRedirections(StartNode* startNode, Token* tokens) {
+    if (!startNode->hasLogical) {
+        // Assign redirections to the HOLDER logical node
+        LogicalNode* holder = (LogicalNode*)startNode->children[0]; // Assuming HOLDER is the first child
+        for (Token* current = tokens; current != NULL; current = current->next) {
+            if (current->type == TOKEN_REDIRECTION_IN) holder->leftInput = current->value;
+            else if (current->type == TOKEN_REDIRECTION_OUT) holder->leftOutput = current->value;
+            else if (current->type == TOKEN_REDIRECTION_APPEND) holder->leftAppend = current->value;
+        }
+    } else {
+		LogicalNode* currentLogicalNode = NULL;
+		int count = -1;
+
+		for (Token* current = tokens; current != NULL; current = current->next) {
+			// When encountering logical operators, adjust the current logical node and count accordingly
+			if (current->type == TOKEN_LOGICAL_AND || current->type == TOKEN_LOGICAL_OR) {
+				count++; // Move to the next logical section
+				if (count > 0 && count < startNode->childCount) {
+					// For subsequent logical nodes, only update currentLogicalNode beyond the first
+					currentLogicalNode = (LogicalNode*)startNode->children[count];
+				}
+				continue; // Skip to next token after adjusting logical context
+			}
+
+			// Assign redirections based on count
+			if (count == -1) { // Before the first logical operator
+				// Use the left side of the first logical node (HOLDER node assumed here)
+				if (current->type == TOKEN_REDIRECTION_IN) startNode->children[0]->leftInput = current->value;
+				else if (current->type == TOKEN_REDIRECTION_OUT) startNode->children[0]->leftOutput = current->value;
+				else if (current->type == TOKEN_REDIRECTION_APPEND) startNode->children[0]->leftAppend = current->value;
+			} else if (count == 0) { // Between the first logical operator and the next
+				// Use the right side of the first logical node
+				if (current->type == TOKEN_REDIRECTION_IN) startNode->children[0]->rightInput = current->value;
+				else if (current->type == TOKEN_REDIRECTION_OUT) startNode->children[0]->rightOutput = current->value;
+				else if (current->type == TOKEN_REDIRECTION_APPEND) startNode->children[0]->rightAppend = current->value;
+			} else if (currentLogicalNode != NULL) { // For all subsequent logical nodes
+				// Assign redirections to the left side of the current logical node
+				if (current->type == TOKEN_REDIRECTION_IN) currentLogicalNode->leftInput = current->value;
+				else if (current->type == TOKEN_REDIRECTION_OUT) currentLogicalNode->leftOutput = current->value;
+				else if (current->type == TOKEN_REDIRECTION_APPEND) currentLogicalNode->leftAppend = current->value;
+			}
+		}
+    }
+}
+
+// Function to print logical nodes stored in the StartNode, including redirection information
 void printLogicalNodes(const StartNode* startNode) {
     if (startNode->hasLogical) {
         printf("StartNode has %d logical nodes:\n", startNode->childCount);
         for (int i = 0; i < startNode->childCount; ++i) {
             LogicalNode* logicalNode = (LogicalNode*)(startNode->children[i]);
             printf("Node %d: Type: %s\n", i, getNodeTypeString(logicalNode->type));
+            // Print redirection information if available
+            if (logicalNode->leftInput) printf("  Left Input: %s\n", logicalNode->leftInput);
+            if (logicalNode->leftOutput) printf("  Left Output: %s\n", logicalNode->leftOutput);
+            if (logicalNode->leftAppend) printf("  Left Append: %s\n", logicalNode->leftAppend);
+            if (logicalNode->rightInput) printf("  Right Input: %s\n", logicalNode->rightInput);
+            if (logicalNode->rightOutput) printf("  Right Output: %s\n", logicalNode->rightOutput);
+            if (logicalNode->rightAppend) printf("  Right Append: %s\n", logicalNode->rightAppend);
         }
     } else {
         printf("StartNode has a logical holder node.\n");
         if (startNode->childCount == 1) {
             LogicalNode* holderNode = (LogicalNode*)(startNode->children[0]);
             printf("Holder Node: Type: %s\n", getNodeTypeString(holderNode->type));
+            // Print redirection information for HOLDER node
+            if (holderNode->leftInput) printf("  Left Input: %s\n", holderNode->leftInput);
+            if (holderNode->leftOutput) printf("  Left Output: %s\n", holderNode->leftOutput);
+            if (holderNode->leftAppend) printf("  Left Append: %s\n", holderNode->leftAppend);
         }
     }
 }
-
 
 void	free_lexer(Token **lexer)
 {
@@ -129,10 +186,11 @@ void	free_lexer(Token **lexer)
 
 int main() {
 	Token *token = lexer();
-	StartNode *StartNode = createAndSetupStartNode(token);
-	addLogicalNodeToStartNode(StartNode, token);
+	StartNode *startNode = createAndSetupStartNode(token);
+	addLogicalNodeToStartNode(startNode, token);
+	assignRedirections(startNode, token);
 
-	printLogicalNodes(StartNode);
+	printLogicalNodes(startNode);
 
 	free_lexer(&token);
     return 0;
