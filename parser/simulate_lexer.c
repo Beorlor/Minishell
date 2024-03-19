@@ -27,8 +27,7 @@ void appendToken(Token** head, TokenType type, char* value) {
 
 const char* getTokenTypeName(TokenType type) {
     switch (type) {
-        case TOKEN_PAREN_OPEN: return "TOKEN_PAREN_OPEN";
-        case TOKEN_PAREN_CLOSE: return "TOKEN_PAREN_CLOSE";
+        case TOKEN_PAREN: return "TOKEN_PAREN";
         case TOKEN_COMMAND: return "TOKEN_COMMAND";
         case TOKEN_LOGICAL_AND: return "TOKEN_LOGICAL_AND";
         case TOKEN_LOGICAL_OR: return "TOKEN_LOGICAL_OR";

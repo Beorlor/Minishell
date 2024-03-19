@@ -7,8 +7,7 @@
 
 // lexer
 typedef enum {
-    TOKEN_PAREN_OPEN,
-    TOKEN_PAREN_CLOSE,
+    TOKEN_PAREN,
     TOKEN_COMMAND,
     TOKEN_LOGICAL_AND,
     TOKEN_LOGICAL_OR,
