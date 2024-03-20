@@ -141,6 +141,55 @@ void assignRedirections(StartNode* startNode, Token* tokens) {
     }
 }
 
+void	generateAndAttachBTree(StartNode* startNode, Token* tokens)
+{
+	if (!startNode->hasLogical)
+	{
+		LogicalNode* holder = (LogicalNode*)startNode->children[0];
+		for (Token* current = tokens; current != NULL; current = current->next)
+		{
+
+		}
+	}
+	else
+	{
+		LogicalNode* currentLogicalNode = NULL;
+		int count = -1;
+
+		for (Token* current = tokens; current != NULL; current = current->next) {
+			// When encountering logical operators, adjust the current logical node and count accordingly
+			if (current->type == TOKEN_LOGICAL_AND || current->type == TOKEN_LOGICAL_OR) {
+				count++; // Move to the next logical section
+				if (count > 0 && count < startNode->childCount) {
+					// For subsequent logical nodes, only update currentLogicalNode beyond the first
+					currentLogicalNode = (LogicalNode*)startNode->children[count];
+				}
+				continue; // Skip to next token after adjusting logical context
+			}
+
+			// Assign redirections based on count
+			if (count == -1)
+			{
+
+			}
+			else if (count == 0)
+			{
+				// Use the right side of the first logical node
+				if (current->type == TOKEN_REDIRECTION_IN) startNode->children[0]->rightInput = current->value;
+				else if (current->type == TOKEN_REDIRECTION_OUT) startNode->children[0]->rightOutput = current->value;
+				else if (current->type == TOKEN_REDIRECTION_APPEND) startNode->children[0]->rightAppend = current->value;
+			}
+			else if (currentLogicalNode != NULL)
+			{
+				// Assign redirections to the left side of the current logical node
+				if (current->type == TOKEN_REDIRECTION_IN) currentLogicalNode->leftInput = current->value;
+				else if (current->type == TOKEN_REDIRECTION_OUT) currentLogicalNode->leftOutput = current->value;
+				else if (current->type == TOKEN_REDIRECTION_APPEND) currentLogicalNode->leftAppend = current->value;
+			}
+		}
+    }
+}
+
 // Function to print logical nodes stored in the StartNode, including redirection information
 void printLogicalNodes(const StartNode* startNode) {
     if (startNode->hasLogical) {
@@ -189,6 +238,7 @@ int main() {
 	StartNode *startNode = createAndSetupStartNode(token);
 	addLogicalNodeToStartNode(startNode, token);
 	assignRedirections(startNode, token);
+	generateAndAttachBTree(startNode, token);
 
 	printLogicalNodes(startNode);
 
