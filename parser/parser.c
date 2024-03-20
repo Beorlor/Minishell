@@ -140,6 +140,21 @@ void assignRedirections(StartNode* startNode, Token* tokens) {
 		}
     }
 }
+// TOKEN_PAREN,
+//     TOKEN_COMMAND,
+// 	TOKEN_PIPE
+ASTNode* createASTNode(NodeType type, char* value) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+    if (!node) {
+        perror("Failed to allocate memory for LogicalNode");
+        exit(EXIT_FAILURE);
+    }
+    node->type = type;
+	node->value = value;
+    node->left = NULL;
+    node->right = NULL;
+    return node;
+}
 
 void	generateAndAttachBTree(StartNode* startNode, Token* tokens)
 {
@@ -148,6 +163,7 @@ void	generateAndAttachBTree(StartNode* startNode, Token* tokens)
 		LogicalNode* holder = (LogicalNode*)startNode->children[0];
 		for (Token* current = tokens; current != NULL; current = current->next)
 		{
+
 
 		}
 	}
@@ -174,17 +190,11 @@ void	generateAndAttachBTree(StartNode* startNode, Token* tokens)
 			}
 			else if (count == 0)
 			{
-				// Use the right side of the first logical node
-				if (current->type == TOKEN_REDIRECTION_IN) startNode->children[0]->rightInput = current->value;
-				else if (current->type == TOKEN_REDIRECTION_OUT) startNode->children[0]->rightOutput = current->value;
-				else if (current->type == TOKEN_REDIRECTION_APPEND) startNode->children[0]->rightAppend = current->value;
+
 			}
 			else if (currentLogicalNode != NULL)
 			{
-				// Assign redirections to the left side of the current logical node
-				if (current->type == TOKEN_REDIRECTION_IN) currentLogicalNode->leftInput = current->value;
-				else if (current->type == TOKEN_REDIRECTION_OUT) currentLogicalNode->leftOutput = current->value;
-				else if (current->type == TOKEN_REDIRECTION_APPEND) currentLogicalNode->leftAppend = current->value;
+
 			}
 		}
     }
