@@ -4,6 +4,7 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <stdbool.h>
+# include <string.h>
 
 // lexer
 typedef enum {
@@ -62,5 +63,8 @@ typedef struct StartNode {
     int childCount; // Number of children
     bool hasLogical; // Boolean to indicate if there are logical nodes
 } StartNode;
+
+void	free_lexer(Token **lexer);
+void	printLogicalSubtrees(const StartNode* startNode);
 
 #endif
