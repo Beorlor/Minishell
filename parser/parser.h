@@ -37,6 +37,8 @@ typedef enum {
     NODE_LOGICAL_HOLDER, // Holder for logical structure
 } NodeType;
 
+
+// !!!! Peut etre un char** plutot que un char* pour int out append
 // Define ASTNode structure
 typedef struct ASTNode {
     NodeType type;

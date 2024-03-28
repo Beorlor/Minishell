@@ -45,22 +45,20 @@ StartNode* createAndSetupStartNode(Token* tokens) {
     return startNode;
 }
 
-// Function to create a logical node (&&, ||, or HOLDER)
-LogicalNode* createLogicalNode(NodeType type) {
-    LogicalNode* node = (LogicalNode*)malloc(sizeof(LogicalNode));
+// Initialize function for an AST node
+ASTNode* createASTNode(NodeType type, char* value) {
+    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
     if (!node) {
-        perror("Failed to allocate memory for LogicalNode");
+        perror("Failed to allocate memory for ASTNode");
         exit(EXIT_FAILURE);
     }
     node->type = type;
-    node->leftInput = NULL;
-    node->leftOutput = NULL;
-	node->leftAppend = NULL;
-    node->rightInput = NULL;
-    node->rightOutput = NULL;
-	node->rightAppend = NULL;
+    node->value = strdup(value); // Make a duplicate of the string to avoid potential issues.
     node->left = NULL;
     node->right = NULL;
+    node->Input = NULL;
+    node->Output = NULL;
+    node->Append = NULL;
     return node;
 }
 
@@ -84,73 +82,40 @@ void addLogicalNodeToStartNode(StartNode* startNode, Token* tokens) {
     }
 }
 
-// Function to get the string representation of the node type
-const char* getNodeTypeString(NodeType type) {
-    switch (type) {
-        case NODE_COMMAND: return "COMMAND";
-        case NODE_LOGICAL_AND: return "LOGICAL_AND";
-        case NODE_LOGICAL_OR: return "LOGICAL_OR";
-        case NODE_PIPE: return "PIPE";
-        case NODE_LOGICAL_HOLDER: return "LOGICAL_HOLDER";
-        default: return "UNKNOWN";
-    }
-}
-
-void assignRedirections(StartNode* startNode, Token* tokens) {
-    if (!startNode->hasLogical) {
-        // Assign redirections to the HOLDER logical node
-        LogicalNode* holder = (LogicalNode*)startNode->children[0]; // Assuming HOLDER is the first child
-        for (Token* current = tokens; current != NULL; current = current->next) {
-            if (current->type == TOKEN_REDIRECTION_IN) holder->leftInput = current->value;
-            else if (current->type == TOKEN_REDIRECTION_OUT) holder->leftOutput = current->value;
-            else if (current->type == TOKEN_REDIRECTION_APPEND) holder->leftAppend = current->value;
+void assignRedirections(ASTNode* commandNode, Token* token) {
+    // Loop through tokens and assign redirections to the appropriate command node.
+    while (token != NULL) {
+        switch (token->type) {
+            case TOKEN_REDIRECTION_IN:
+                commandNode->Input = token->value;
+                break;
+            case TOKEN_REDIRECTION_OUT:
+                commandNode->Output = token->value;
+                break;
+            case TOKEN_REDIRECTION_APPEND:
+                commandNode->Append = token->value;
+                break;
+            default:
+                // For non-redirection tokens, you would typically create or traverse command nodes.
+                // This is simplified and should be expanded based on your AST generation logic.
+                break;
         }
-    } else {
-		LogicalNode* currentLogicalNode = NULL;
-		int count = -1;
-
-		for (Token* current = tokens; current != NULL; current = current->next) {
-			// When encountering logical operators, adjust the current logical node and count accordingly
-			if (current->type == TOKEN_LOGICAL_AND || current->type == TOKEN_LOGICAL_OR) {
-				count++; // Move to the next logical section
-				if (count > 0 && count < startNode->childCount) {
-					// For subsequent logical nodes, only update currentLogicalNode beyond the first
-					currentLogicalNode = (LogicalNode*)startNode->children[count];
-				}
-				continue; // Skip to next token after adjusting logical context
-			}
-
-			// Assign redirections based on count
-			if (count == -1) { // Before the first logical operator
-				// Use the left side of the first logical node (HOLDER node assumed here)
-				if (current->type == TOKEN_REDIRECTION_IN) startNode->children[0]->leftInput = current->value;
-				else if (current->type == TOKEN_REDIRECTION_OUT) startNode->children[0]->leftOutput = current->value;
-				else if (current->type == TOKEN_REDIRECTION_APPEND) startNode->children[0]->leftAppend = current->value;
-			} else if (count == 0) { // Between the first logical operator and the next
-				// Use the right side of the first logical node
-				if (current->type == TOKEN_REDIRECTION_IN) startNode->children[0]->rightInput = current->value;
-				else if (current->type == TOKEN_REDIRECTION_OUT) startNode->children[0]->rightOutput = current->value;
-				else if (current->type == TOKEN_REDIRECTION_APPEND) startNode->children[0]->rightAppend = current->value;
-			} else if (currentLogicalNode != NULL) { // For all subsequent logical nodes
-				// Assign redirections to the left side of the current logical node
-				if (current->type == TOKEN_REDIRECTION_IN) currentLogicalNode->leftInput = current->value;
-				else if (current->type == TOKEN_REDIRECTION_OUT) currentLogicalNode->leftOutput = current->value;
-				else if (current->type == TOKEN_REDIRECTION_APPEND) currentLogicalNode->leftAppend = current->value;
-			}
-		}
+        token = token->next;
     }
 }
+
 // TOKEN_PAREN,
 //     TOKEN_COMMAND,
 // 	TOKEN_PIPE
-ASTNode* createASTNode(NodeType type, char* value) {
-    ASTNode* node = (ASTNode*)malloc(sizeof(ASTNode));
+
+// Function to create a logical node (&&, ||, or HOLDER)
+LogicalNode* createLogicalNode(NodeType type) {
+    LogicalNode* node = (LogicalNode*)malloc(sizeof(LogicalNode));
     if (!node) {
         perror("Failed to allocate memory for LogicalNode");
         exit(EXIT_FAILURE);
     }
     node->type = type;
-	node->value = value;
     node->left = NULL;
     node->right = NULL;
     return node;
@@ -200,30 +165,44 @@ void	generateAndAttachBTree(StartNode* startNode, Token* tokens)
     }
 }
 
-// Function to print logical nodes stored in the StartNode, including redirection information
-void printLogicalNodes(const StartNode* startNode) {
-    if (startNode->hasLogical) {
-        printf("StartNode has %d logical nodes:\n", startNode->childCount);
-        for (int i = 0; i < startNode->childCount; ++i) {
-            LogicalNode* logicalNode = (LogicalNode*)(startNode->children[i]);
-            printf("Node %d: Type: %s\n", i, getNodeTypeString(logicalNode->type));
-            // Print redirection information if available
-            if (logicalNode->leftInput) printf("  Left Input: %s\n", logicalNode->leftInput);
-            if (logicalNode->leftOutput) printf("  Left Output: %s\n", logicalNode->leftOutput);
-            if (logicalNode->leftAppend) printf("  Left Append: %s\n", logicalNode->leftAppend);
-            if (logicalNode->rightInput) printf("  Right Input: %s\n", logicalNode->rightInput);
-            if (logicalNode->rightOutput) printf("  Right Output: %s\n", logicalNode->rightOutput);
-            if (logicalNode->rightAppend) printf("  Right Append: %s\n", logicalNode->rightAppend);
-        }
-    } else {
-        printf("StartNode has a logical holder node.\n");
-        if (startNode->childCount == 1) {
-            LogicalNode* holderNode = (LogicalNode*)(startNode->children[0]);
-            printf("Holder Node: Type: %s\n", getNodeTypeString(holderNode->type));
-            // Print redirection information for HOLDER node
-            if (holderNode->leftInput) printf("  Left Input: %s\n", holderNode->leftInput);
-            if (holderNode->leftOutput) printf("  Left Output: %s\n", holderNode->leftOutput);
-            if (holderNode->leftAppend) printf("  Left Append: %s\n", holderNode->leftAppend);
+// Function to get the string representation of the node type
+void printInOrderAST(const ASTNode* node) {
+    if (node == NULL) {
+        return;
+    }
+    // In-order traversal: left, root, right
+    printInOrderAST(node->left);
+
+    printf("AST Node: Type: %s, Value: %s\n", getNodeTypeString(node->type), node->value ? node->value : "null");
+    if (node->Input) printf("    Input Redirection: %s\n", node->Input);
+    if (node->Output) printf("    Output Redirection: %s\n", node->Output);
+    if (node->Append) printf("    Append Redirection: %s\n", node->Append);
+
+    printInOrderAST(node->right);
+}
+
+void printLogicalSubtrees(const StartNode* startNode) {
+    if (startNode == NULL || startNode->children == NULL) {
+        return;
+    }
+
+    // Print left subtree of the first logical node in in-order
+    if (startNode->childCount > 0 && startNode->children[0]->left) {
+        printf("\nLeft Subtree of First Logical Node:\n");
+        printInOrderAST(startNode->children[0]->left);
+    }
+
+    // Print right subtree of the first logical node in in-order
+    if (startNode->childCount > 0 && startNode->children[0]->right) {
+        printf("\nRight Subtree of First Logical Node:\n");
+        printInOrderAST(startNode->children[0]->right);
+    }
+
+    // Print left subtree of all the other logical nodes in in-order
+    for (int i = 1; i < startNode->childCount; i++) {
+        if (startNode->children[i]->left) {
+            printf("\nLeft Subtree of Logical Node %d:\n", i);
+            printInOrderAST(startNode->children[i]->left);
         }
     }
 }
