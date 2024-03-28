@@ -43,16 +43,13 @@ typedef struct ASTNode {
     char *value; // Stores the command or argument
     struct ASTNode *left; // Used for binary trees (commands and pipes)
     struct ASTNode *right; // Chaining arguments or operations
+	char *Input;
+	char *Output;
+	char *Append;
 } ASTNode;
 
 typedef struct LogicalNode {
     NodeType type; // NODE_LOGICAL_AND, NODE_LOGICAL_OR, or NODE_LOGICAL_HOLDER
-    char *leftInput;
-	char *leftOutput;
-	char *leftAppend;
-    char *rightInput;
-	char *rightOutput;
-	char *rightAppend;
     struct ASTNode *left; // Left subtree (commands and pipes)
     struct ASTNode *right; // Right subtree (commands and pipes)
 } LogicalNode;

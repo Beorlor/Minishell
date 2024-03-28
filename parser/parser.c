@@ -156,49 +156,49 @@ ASTNode* createASTNode(NodeType type, char* value) {
     return node;
 }
 
-// void	generateAndAttachBTree(StartNode* startNode, Token* tokens)
-// {
-// 	if (!startNode->hasLogical)
-// 	{
-// 		LogicalNode* holder = (LogicalNode*)startNode->children[0];
-// 		for (Token* current = tokens; current != NULL; current = current->next)
-// 		{
+void	generateAndAttachBTree(StartNode* startNode, Token* tokens)
+{
+	if (!startNode->hasLogical)
+	{
+		LogicalNode* holder = (LogicalNode*)startNode->children[0];
+		for (Token* current = tokens; current != NULL; current = current->next)
+		{
 
 
-// 		}
-// 	}
-// 	else
-// 	{
-// 		LogicalNode* currentLogicalNode = NULL;
-// 		int count = -1;
+		}
+	}
+	else
+	{
+		LogicalNode* currentLogicalNode = NULL;
+		int count = -1;
 
-// 		for (Token* current = tokens; current != NULL; current = current->next) {
-// 			// When encountering logical operators, adjust the current logical node and count accordingly
-// 			if (current->type == TOKEN_LOGICAL_AND || current->type == TOKEN_LOGICAL_OR) {
-// 				count++; // Move to the next logical section
-// 				if (count > 0 && count < startNode->childCount) {
-// 					// For subsequent logical nodes, only update currentLogicalNode beyond the first
-// 					currentLogicalNode = (LogicalNode*)startNode->children[count];
-// 				}
-// 				continue; // Skip to next token after adjusting logical context
-// 			}
+		for (Token* current = tokens; current != NULL; current = current->next) {
+			// When encountering logical operators, adjust the current logical node and count accordingly
+			if (current->type == TOKEN_LOGICAL_AND || current->type == TOKEN_LOGICAL_OR) {
+				count++; // Move to the next logical section
+				if (count > 0 && count < startNode->childCount) {
+					// For subsequent logical nodes, only update currentLogicalNode beyond the first
+					currentLogicalNode = (LogicalNode*)startNode->children[count];
+				}
+				continue; // Skip to next token after adjusting logical context
+			}
 
-// 			// Assign redirections based on count
-// 			if (count == -1)
-// 			{
+			// Assign redirections based on count
+			if (count == -1)
+			{
 
-// 			}
-// 			else if (count == 0)
-// 			{
+			}
+			else if (count == 0)
+			{
 
-// 			}
-// 			else if (currentLogicalNode != NULL)
-// 			{
+			}
+			else if (currentLogicalNode != NULL)
+			{
 
-// 			}
-// 		}
-//     }
-// }
+			}
+		}
+    }
+}
 
 // Function to print logical nodes stored in the StartNode, including redirection information
 void printLogicalNodes(const StartNode* startNode) {
