@@ -1,6 +1,16 @@
 #include "parser.h"
 
-#include "parser.h"
+const char* getNodeTypeString(NodeType type) {
+    switch (type) {
+        case NODE_COMMAND: return "COMMAND";
+		case NODE_PARENTHESE : return "PARENTHESE";
+        case NODE_LOGICAL_AND: return "LOGICAL_AND";
+        case NODE_LOGICAL_OR: return "LOGICAL_OR";
+        case NODE_PIPE: return "PIPE";
+        case NODE_LOGICAL_HOLDER: return "LOGICAL_HOLDER";
+        default: return "UNKNOWN";
+    }
+}
 
 // Helper function to print redirections nicely
 void printRedirections(const Redirection* redir) {
@@ -89,6 +99,7 @@ void	free_lexer(Token **lexer)
 	*lexer = NULL;
 }
 
+// !!!!!!!!!!!!!!!!!!!!!!!!!!! need to free the filename
 void freeRedirectionList(Redirection** list) {
     if (list == NULL || *list == NULL) {
         return; // Safety check if list is NULL or already empty
@@ -99,7 +110,7 @@ void freeRedirectionList(Redirection** list) {
 
     while (current != NULL) {
         next = current->next;
-        free(current->filename); // Free the filename string allocated with strdup
+        //free(current->filename); // Free the filename string allocated with strdup
         free(current); // Free the redirection node itself
         current = next;
     }

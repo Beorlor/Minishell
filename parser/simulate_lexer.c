@@ -58,8 +58,13 @@ Token *lexer() {
     appendToken(&tokens, TOKEN_REDIRECTION_OUT, "files1.txt");
 	appendToken(&tokens, TOKEN_LOGICAL_AND, "&&");
 	appendToken(&tokens, TOKEN_REDIRECTION_IN, "files2.txt");
+	appendToken(&tokens, TOKEN_COMMAND, "cat");
 	appendToken(&tokens, TOKEN_LOGICAL_OR, "||");
 	appendToken(&tokens, TOKEN_REDIRECTION_APPEND, "files3.txt");
+	appendToken(&tokens, TOKEN_COMMAND, "wc -l");
+	appendToken(&tokens, TOKEN_LOGICAL_OR, "||");
+	appendToken(&tokens, TOKEN_REDIRECTION_APPEND, "files4.txt");
+	appendToken(&tokens, TOKEN_COMMAND, "test");
 
     printTokens(tokens);
 
