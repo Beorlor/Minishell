@@ -119,21 +119,6 @@ void addRedirection(Redirection** list, Redirection* redir) {
     }
 }
 
-// Helper function to attach redirections to the previous command in the AST
-void attachRedirectionsToPreviousCommand(ASTNode* root, Redirection* inputs, Redirection* outputs, Redirection* appends) {
-    if (root == NULL) return;
-    ASTNode* lastCommand = root;
-    while (lastCommand->right != NULL) {
-        lastCommand = lastCommand->right; // Find the last command node in the tree
-    }
-    if (lastCommand->type == NODE_COMMAND) {
-        // If the last node is a command, attach the redirections
-        lastCommand->inputs = inputs;
-        lastCommand->outputs = outputs;
-        lastCommand->appends = appends;
-    }
-}
-
 ASTNode* buildCommandPipeTree(Token** currentToken) {
     ASTNode* root = NULL;
     ASTNode* currentCommand = NULL;
@@ -142,71 +127,85 @@ ASTNode* buildCommandPipeTree(Token** currentToken) {
     Redirection* tempAppends = NULL;
 
     while (*currentToken != NULL) {
-        if ((*currentToken)->type == TOKEN_COMMAND) {
-            // Handle command token
-            ASTNode* commandNode = createASTNode(NODE_COMMAND, (*currentToken)->value);
-            // Attach stored redirections to this command
-            commandNode->inputs = tempInputs;
-            commandNode->outputs = tempOutputs;
-            commandNode->appends = tempAppends;
-            // Reset temporary redirection pointers
-            tempInputs = NULL;
-            tempOutputs = NULL;
-            tempAppends = NULL;
+        switch ((*currentToken)->type) {
+            case TOKEN_COMMAND:
+                // Create a new command node and attach any pending redirections
+                currentCommand = createASTNode(NODE_COMMAND, (*currentToken)->value);
+                currentCommand->inputs = tempInputs;
+                currentCommand->outputs = tempOutputs;
+                currentCommand->appends = tempAppends;
+                tempInputs = tempOutputs = tempAppends = NULL; // Clear the temporary storage
 
-            if (root == NULL) {
-                root = commandNode;
-            } else {
-                ASTNode* rightmost = root;
-                while (rightmost->right != NULL) {
-                    rightmost = rightmost->right;
+                if (root == NULL) {
+                    root = currentCommand; // First command in the sequence
+                } else {
+                    // Attach the current command to the rightmost part of the tree
+                    ASTNode* rightmost = root;
+                    while (rightmost->right != NULL) {
+                        rightmost = rightmost->right;
+                    }
+                    rightmost->right = currentCommand;
                 }
-                rightmost->right = commandNode;
-            }
-            currentCommand = commandNode;
-        } else if ((*currentToken)->type == TOKEN_PIPE || (*currentToken)->type == TOKEN_LOGICAL_AND || (*currentToken)->type == TOKEN_LOGICAL_OR) {
-            // Handle pipe or logical operator token
-            if (currentCommand == NULL) {
-                // Attach redirections to the previous command if there are no commands between pipes
-                attachRedirectionsToPreviousCommand(root, tempInputs, tempOutputs, tempAppends);
-                // Reset temporary redirection pointers
-                tempInputs = NULL;
-                tempOutputs = NULL;
-                tempAppends = NULL;
-            }
-
-            if ((*currentToken)->type == TOKEN_PIPE) {
-                // Create a new pipe node
-                ASTNode* pipeNode = createASTNode(NODE_PIPE, "|");
-                pipeNode->left = root;
-                root = pipeNode;
-                currentCommand = NULL; // Reset current command as we're starting a new sub-tree
-            } else {
-                // Break out of the loop for logical operators, since we handle them elsewhere
                 break;
-            }
-        } else if ((*currentToken)->type == TOKEN_REDIRECTION_IN || (*currentToken)->type == TOKEN_REDIRECTION_OUT || (*currentToken)->type == TOKEN_REDIRECTION_APPEND) {
-            // Handle redirection token
-            Redirection* newRedir = createRedirection((*currentToken)->value);
-            if ((*currentToken)->type == TOKEN_REDIRECTION_IN) {
-                addRedirection(&tempInputs, newRedir);
-            } else if ((*currentToken)->type == TOKEN_REDIRECTION_OUT) {
-                addRedirection(&tempOutputs, newRedir);
-            } else if ((*currentToken)->type == TOKEN_REDIRECTION_APPEND) {
-                addRedirection(&tempAppends, newRedir);
-            }
+
+            case TOKEN_PIPE:
+            case TOKEN_LOGICAL_AND:
+            case TOKEN_LOGICAL_OR:
+                // Finalize the last command with redirections before moving on
+                if (currentCommand != NULL) {
+                    currentCommand->inputs = tempInputs;
+                    currentCommand->outputs = tempOutputs;
+                    currentCommand->appends = tempAppends;
+                } else {
+                    // No current command to attach to, free redirections
+                    freeRedirectionList(&tempInputs);
+                    freeRedirectionList(&tempOutputs);
+                    freeRedirectionList(&tempAppends);
+                }
+
+                if ((*currentToken)->type == TOKEN_PIPE) {
+                    // Create a new pipe node and reset the current command
+                    ASTNode* pipeNode = createASTNode(NODE_PIPE, "|");
+                    pipeNode->left = root;
+                    root = pipeNode;
+                    currentCommand = NULL;
+                } else {
+                    // For logical operators, simply exit the loop
+                    return root;
+                }
+                // Reset redirection lists
+                tempInputs = tempOutputs = tempAppends = NULL;
+                break;
+
+            case TOKEN_REDIRECTION_IN:
+            case TOKEN_REDIRECTION_OUT:
+            case TOKEN_REDIRECTION_APPEND:
+                // Handle redirection tokens
+                Redirection* newRedir = createRedirection((*currentToken)->value);
+                if ((*currentToken)->type == TOKEN_REDIRECTION_IN) {
+                    addRedirection(&tempInputs, newRedir);
+                } else if ((*currentToken)->type == TOKEN_REDIRECTION_OUT) {
+                    addRedirection(&tempOutputs, newRedir);
+                } else if ((*currentToken)->type == TOKEN_REDIRECTION_APPEND) {
+                    addRedirection(&tempAppends, newRedir);
+                }
+                break;
+
+            default:
+                // Possibly handle unexpected token types or errors
+                break;
         }
 
-        *currentToken = (*currentToken)->next;
+        *currentToken = (*currentToken)->next; // Move to the next token
     }
 
-    // Finalize the last command if the end of tokens is reached
+    // If ending without a logical operator, handle any remaining command redirections
     if (currentCommand != NULL) {
         currentCommand->inputs = tempInputs;
         currentCommand->outputs = tempOutputs;
         currentCommand->appends = tempAppends;
     } else {
-        // If we ended on redirections without a command, we should free them
+        // Clean up any remaining redirections if no final command is found
         freeRedirectionList(&tempInputs);
         freeRedirectionList(&tempOutputs);
         freeRedirectionList(&tempAppends);
@@ -246,20 +245,14 @@ void generateAndAttachBTree(StartNode* startNode, Token* tokens) {
 }
 
 int main() {
-    // Your lexer function should be implemented to tokenize the input.
-    Token *tokens = lexer();  // Assuming this is implemented elsewhere.
+    Token *tokens = lexer();
+    StartNode *startNode = createAndSetupStartNode(tokens);
+    addLogicalNodeToStartNode(startNode, tokens);
+    generateAndAttachBTree(startNode, tokens);
 
-    // Create the starting node for the AST.
-    StartNode *startNode = createAndSetupStartNode(tokens);  // Assuming this is implemented to create a start node from tokens.
-	addLogicalNodeToStartNode(startNode, tokens);
-    // Generate the AST and attach it to the logical nodes.
-    //generateAndAttachBTree(startNode, tokens);  // Assuming this is implemented to generate the AST.
+    printEntireAST(startNode);
 
-    // Print the subtrees of the logical nodes in the specified order.
-    printLogicalSubtrees(startNode);
+    free_lexer(&tokens);
 
-    // Assuming you have a function to free the tokens.
-    free_lexer(&tokens);  // Assuming this is implemented to free the list of tokens.
-
-    return 0;
+    return EXIT_SUCCESS;
 }

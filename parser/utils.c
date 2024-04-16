@@ -1,65 +1,75 @@
 #include "parser.h"
 
-// Function to get the string representation of the node type
-const char* getNodeTypeString(NodeType type) {
-    switch (type) {
-        case NODE_COMMAND: return "COMMAND";
-		case NODE_PARENTHESE : return "PARENTHESE";
-        case NODE_LOGICAL_AND: return "LOGICAL_AND";
-        case NODE_LOGICAL_OR: return "LOGICAL_OR";
-        case NODE_PIPE: return "PIPE";
-        case NODE_LOGICAL_HOLDER: return "LOGICAL_HOLDER";
-        default: return "UNKNOWN";
+#include "parser.h"
+
+// Helper function to print redirections nicely
+void printRedirections(const Redirection* redir) {
+    const char* sep = "";
+    while (redir) {
+        printf("%s%s", sep, redir->filename);
+        sep = ", ";
+        redir = redir->next;
     }
 }
 
+// Recursive function to print the AST nodes with indentation for better visualization
+void printAST(const ASTNode* node, int level) {
+    if (!node) return;
 
-void printAST(const ASTNode* node) {
-    if (node == NULL) {
-        return;
-    }
-    printAST(node->left);
+    // Print right subtree first (for right-to-left visual structure)
+    printAST(node->right, level + 1);
 
-    // Print the command or logical operation
+    // Print spaces for current level indentation
+    for (int i = 0; i < level; i++) printf("    ");
+
+    // Print the node type and any associated values or redirections
     printf("%s", getNodeTypeString(node->type));
     if (node->type == NODE_COMMAND || node->type == NODE_PARENTHESE) {
-        printf(" (Value: %s", node->value);
-        if (node->inputs) printf(", Input: %s", node->inputs);
-        if (node->outputs) printf(", Output: %s", node->outputs);
-        if (node->appends) printf(", Append: %s", node->appends);
-        printf(")");
+        printf(": %s", node->value ? node->value : "NULL");
+        if (node->inputs || node->outputs || node->appends) {
+            printf(" [");
+            if (node->inputs) {
+                printf("In: ");
+                printRedirections(node->inputs);
+            }
+            if (node->outputs) {
+                printf("; Out: ");
+                printRedirections(node->outputs);
+            }
+            if (node->appends) {
+                printf("; Append: ");
+                printRedirections(node->appends);
+            }
+            printf("]");
+        }
     }
     printf("\n");
 
-    printAST(node->right);
+    // Print left subtree last (to maintain the correct order visually)
+    printAST(node->left, level + 1);
 }
 
-void printLogicalSubtrees(const StartNode* startNode) {
-    if (startNode == NULL || startNode->children == NULL) {
+// Central function to print the entire AST, including logical nodes
+void printEntireAST(const StartNode* startNode) {
+    if (!startNode || !startNode->children) {
+        printf("No AST data available to display.\n");
         return;
     }
 
-    // Iterate over each logical node and print its subtrees and the node itself.
+    printf("Complete Abstract Syntax Tree:\n");
     for (int i = 0; i < startNode->childCount; ++i) {
         LogicalNode* logicalNode = startNode->children[i];
-
         printf("Subtree %d:\n", i + 1);
-
-        // Print the left subtree of the current logical node.
         if (logicalNode->left) {
-            printf("Left Subtree of Logical Node %d:\n", i + 1);
-            printAST(logicalNode->left);
+            printf("Left:\n");
+            printAST(logicalNode->left, 1);
         }
-
-        // Print the logical node itself if it's not a HOLDER (which serves as a placeholder for non-logical structures).
         if (logicalNode->type != NODE_LOGICAL_HOLDER) {
-            printf("Logical Node %d: %s\n", i + 1, getNodeTypeString(logicalNode->type));
+            printf("Logical Node (%s):\n", getNodeTypeString(logicalNode->type));
         }
-
-        // Print the right subtree of the current logical node, if there's another logical operation, it links to the next subtree.
         if (logicalNode->right) {
-            printf("Right Subtree of Logical Node %d:\n", i + 1);
-            printAST(logicalNode->right);
+            printf("Right:\n");
+            printAST(logicalNode->right, 1);
         }
     }
 }
