@@ -122,52 +122,80 @@ void addLogicalNodeToStartNode(StartNode* startNode, Token* tokens) {
 //     TOKEN_COMMAND,
 // 	TOKEN_PIPE
 
-// function doit arreter a la fin ou a la rencontre dune logical node
-// function qui met les redirections a chaque rencontre de command
 
-void	generateAndAttachBTree(StartNode* startNode, Token* tokens)
-{
-	if (!startNode->hasLogical)
-	{
-		LogicalNode* holder = (LogicalNode*)startNode->children[0];
-		for (Token* current = tokens; current != NULL; current = current->next)
-		{
-			//call function pour mettre les commandes et pipes
-		}
-	}
-	else
-	{
-		LogicalNode* currentLogicalNode = NULL;
-		int count = -1;
+// This function is a helper to handle command and pipe nodes.
+ASTNode* buildCommandPipeTree(Token** currentToken) {
+    ASTNode* root = NULL;
+    ASTNode* current = NULL;
 
-		for (Token* current = tokens; current != NULL; current = current->next) {
-			// When encountering logical operators, adjust the current logical node and count accordingly
-			if (current->type == TOKEN_LOGICAL_AND || current->type == TOKEN_LOGICAL_OR) {
-				count++; // Move to the next logical section
-				if (count > 0 && count < startNode->childCount) {
-					// For subsequent logical nodes, only update currentLogicalNode beyond the first
-					currentLogicalNode = (LogicalNode*)startNode->children[count];
-				}
-				continue; // Skip to next token after adjusting logical context
-			}
+    while (*currentToken != NULL && (*currentToken)->type != TOKEN_LOGICAL_AND && (*currentToken)->type != TOKEN_LOGICAL_OR) {
+        if ((*currentToken)->type == TOKEN_COMMAND) {
+            ASTNode* commandNode = createASTNode(NODE_COMMAND, (*currentToken)->value);
 
-			// Assign redirections based on count
-			if (count == -1) //first left
-			{
-				//call function pour mettre les commandes et pipes
-			}
-			else if (count == 0) //first right
-			{
-				//call function pour mettre les commandes et pipes
-			}
-			else if (currentLogicalNode != NULL)
-			{
-				//call function pour mettre les commandes et pipes
-			}
-		}
+            if (root == NULL) {
+                root = commandNode;
+            } else {
+                // Attach commandNode to the rightmost leaf of the tree.
+                ASTNode* rightmost = root;
+                while (rightmost->right != NULL) {
+                    rightmost = rightmost->right;
+                }
+                rightmost->right = commandNode;
+            }
+
+            current = commandNode;
+        } else if ((*currentToken)->type == TOKEN_PIPE) {
+            // Create a new pipe node.
+            ASTNode* pipeNode = createASTNode(NODE_PIPE, "|");
+            pipeNode->left = root; // The current root is the left child of the pipe.
+
+            // The new root is now the pipe node.
+            root = pipeNode;
+            current = NULL; // Reset current as we're now dealing with a pipe.
+        } else if (current != NULL && ( (*currentToken)->type == TOKEN_REDIRECTION_IN ||
+                                        (*currentToken)->type == TOKEN_REDIRECTION_OUT ||
+                                        (*currentToken)->type == TOKEN_REDIRECTION_APPEND)) {
+            // Set redirections for the current command.
+            if ((*currentToken)->type == TOKEN_REDIRECTION_IN) current->Input = (*currentToken)->value;
+            if ((*currentToken)->type == TOKEN_REDIRECTION_OUT) current->Output = (*currentToken)->value;
+            if ((*currentToken)->type == TOKEN_REDIRECTION_APPEND) current->Append = (*currentToken)->value;
+        }
+
+        *currentToken = (*currentToken)->next;
     }
+
+    return root;
 }
 
+void generateAndAttachBTree(StartNode* startNode, Token* tokens) {
+    if (!startNode->hasLogical) {
+        // If there are no logical operators, build the entire tree and attach to the logical HOLDER node.
+        LogicalNode* holder = startNode->children[0];
+        holder->left = buildCommandPipeTree(&tokens); // Since no logical ops, the tree will be directly under the HOLDER.
+    } else {
+        // If logical operators are present, build separate trees and attach to the correct side of logical nodes.
+        int count = -1;
+
+        while (tokens != NULL) {
+            // Check for logical operator to increment count and decide where to attach the tree.
+            if (tokens->type == TOKEN_LOGICAL_AND || tokens->type == TOKEN_LOGICAL_OR) {
+                count++;
+                tokens = tokens->next; // Skip the logical operator token.
+            } else {
+                if (count == -1) {
+                    // Attach the first command sequence to the left of the first logical node.
+                    startNode->children[0]->left = buildCommandPipeTree(&tokens);
+                } else if (count == 0) {
+                    // Attach the second command sequence to the right of the first logical node.
+                    startNode->children[0]->right = buildCommandPipeTree(&tokens);
+                } else {
+                    // For all subsequent logical nodes, attach the command sequence to the left.
+                    startNode->children[count]->left = buildCommandPipeTree(&tokens);
+                }
+            }
+        }
+    }
+}
 
 int main() {
     // Your lexer function should be implemented to tokenize the input.
