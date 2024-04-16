@@ -68,5 +68,6 @@ typedef struct StartNode {
 
 void	free_lexer(Token **lexer);
 void	printLogicalSubtrees(const StartNode* startNode);
+void freeRedirectionList(Redirection** list);
 
 #endif

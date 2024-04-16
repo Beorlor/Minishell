@@ -24,9 +24,9 @@ void printAST(const ASTNode* node) {
     printf("%s", getNodeTypeString(node->type));
     if (node->type == NODE_COMMAND || node->type == NODE_PARENTHESE) {
         printf(" (Value: %s", node->value);
-        if (node->Input) printf(", Input: %s", node->Input);
-        if (node->Output) printf(", Output: %s", node->Output);
-        if (node->Append) printf(", Append: %s", node->Append);
+        if (node->inputs) printf(", Input: %s", node->inputs);
+        if (node->outputs) printf(", Output: %s", node->outputs);
+        if (node->appends) printf(", Append: %s", node->appends);
         printf(")");
     }
     printf("\n");
@@ -77,4 +77,22 @@ void	free_lexer(Token **lexer)
 		current = next;
 	}
 	*lexer = NULL;
+}
+
+void freeRedirectionList(Redirection** list) {
+    if (list == NULL || *list == NULL) {
+        return; // Safety check if list is NULL or already empty
+    }
+
+    Redirection* current = *list;
+    Redirection* next = NULL;
+
+    while (current != NULL) {
+        next = current->next;
+        free(current->filename); // Free the filename string allocated with strdup
+        free(current); // Free the redirection node itself
+        current = next;
+    }
+
+    *list = NULL; // Set the list pointer to NULL after freeing
 }

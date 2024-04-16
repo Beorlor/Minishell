@@ -53,12 +53,12 @@ ASTNode* createASTNode(NodeType type, char* value) {
         exit(EXIT_FAILURE);
     }
     node->type = type;
-    node->value = strdup(value); // Make a duplicate of the string to avoid potential issues.
+    node->value = value; // Make a duplicate of the string to avoid potential issues.
     node->left = NULL;
     node->right = NULL;
-    node->Input = NULL;
-    node->Output = NULL;
-    node->Append = NULL;
+    node->inputs = NULL;
+    node->outputs = NULL;
+    node->appends = NULL;
     return node;
 }
 
@@ -102,7 +102,7 @@ Redirection* createRedirection(char* filename) {
         perror("Failed to allocate memory for Redirection");
         exit(EXIT_FAILURE);
     }
-    redir->filename = strdup(filename);
+    redir->filename = filename;
     redir->next = NULL;
     return redir;
 }
@@ -119,16 +119,40 @@ void addRedirection(Redirection** list, Redirection* redir) {
     }
 }
 
+// Helper function to attach redirections to the previous command in the AST
+void attachRedirectionsToPreviousCommand(ASTNode* root, Redirection* inputs, Redirection* outputs, Redirection* appends) {
+    if (root == NULL) return;
+    ASTNode* lastCommand = root;
+    while (lastCommand->right != NULL) {
+        lastCommand = lastCommand->right; // Find the last command node in the tree
+    }
+    if (lastCommand->type == NODE_COMMAND) {
+        // If the last node is a command, attach the redirections
+        lastCommand->inputs = inputs;
+        lastCommand->outputs = outputs;
+        lastCommand->appends = appends;
+    }
+}
+
 ASTNode* buildCommandPipeTree(Token** currentToken) {
     ASTNode* root = NULL;
     ASTNode* currentCommand = NULL;
+    Redirection* tempInputs = NULL;
+    Redirection* tempOutputs = NULL;
+    Redirection* tempAppends = NULL;
 
-    while (*currentToken != NULL && (*currentToken)->type != TOKEN_LOGICAL_AND && (*currentToken)->type != TOKEN_LOGICAL_OR) {
+    while (*currentToken != NULL) {
         if ((*currentToken)->type == TOKEN_COMMAND) {
+            // Handle command token
             ASTNode* commandNode = createASTNode(NODE_COMMAND, (*currentToken)->value);
-            commandNode->inputs = NULL;
-            commandNode->outputs = NULL;
-            commandNode->appends = NULL;
+            // Attach stored redirections to this command
+            commandNode->inputs = tempInputs;
+            commandNode->outputs = tempOutputs;
+            commandNode->appends = tempAppends;
+            // Reset temporary redirection pointers
+            tempInputs = NULL;
+            tempOutputs = NULL;
+            tempAppends = NULL;
 
             if (root == NULL) {
                 root = commandNode;
@@ -139,27 +163,53 @@ ASTNode* buildCommandPipeTree(Token** currentToken) {
                 }
                 rightmost->right = commandNode;
             }
-
             currentCommand = commandNode;
-        } else if ((*currentToken)->type == TOKEN_PIPE) {
-            ASTNode* pipeNode = createASTNode(NODE_PIPE, "|");
-            pipeNode->left = root;
-            root = pipeNode;
-            currentCommand = NULL;
-        } else if (currentCommand != NULL && ((*currentToken)->type == TOKEN_REDIRECTION_IN ||
-                                              (*currentToken)->type == TOKEN_REDIRECTION_OUT ||
-                                              (*currentToken)->type == TOKEN_REDIRECTION_APPEND)) {
+        } else if ((*currentToken)->type == TOKEN_PIPE || (*currentToken)->type == TOKEN_LOGICAL_AND || (*currentToken)->type == TOKEN_LOGICAL_OR) {
+            // Handle pipe or logical operator token
+            if (currentCommand == NULL) {
+                // Attach redirections to the previous command if there are no commands between pipes
+                attachRedirectionsToPreviousCommand(root, tempInputs, tempOutputs, tempAppends);
+                // Reset temporary redirection pointers
+                tempInputs = NULL;
+                tempOutputs = NULL;
+                tempAppends = NULL;
+            }
+
+            if ((*currentToken)->type == TOKEN_PIPE) {
+                // Create a new pipe node
+                ASTNode* pipeNode = createASTNode(NODE_PIPE, "|");
+                pipeNode->left = root;
+                root = pipeNode;
+                currentCommand = NULL; // Reset current command as we're starting a new sub-tree
+            } else {
+                // Break out of the loop for logical operators, since we handle them elsewhere
+                break;
+            }
+        } else if ((*currentToken)->type == TOKEN_REDIRECTION_IN || (*currentToken)->type == TOKEN_REDIRECTION_OUT || (*currentToken)->type == TOKEN_REDIRECTION_APPEND) {
+            // Handle redirection token
             Redirection* newRedir = createRedirection((*currentToken)->value);
             if ((*currentToken)->type == TOKEN_REDIRECTION_IN) {
-                addRedirection(&currentCommand->inputs, newRedir);
+                addRedirection(&tempInputs, newRedir);
             } else if ((*currentToken)->type == TOKEN_REDIRECTION_OUT) {
-                addRedirection(&currentCommand->outputs, newRedir);
+                addRedirection(&tempOutputs, newRedir);
             } else if ((*currentToken)->type == TOKEN_REDIRECTION_APPEND) {
-                addRedirection(&currentCommand->appends, newRedir);
+                addRedirection(&tempAppends, newRedir);
             }
         }
 
         *currentToken = (*currentToken)->next;
+    }
+
+    // Finalize the last command if the end of tokens is reached
+    if (currentCommand != NULL) {
+        currentCommand->inputs = tempInputs;
+        currentCommand->outputs = tempOutputs;
+        currentCommand->appends = tempAppends;
+    } else {
+        // If we ended on redirections without a command, we should free them
+        freeRedirectionList(&tempInputs);
+        freeRedirectionList(&tempOutputs);
+        freeRedirectionList(&tempAppends);
     }
 
     return root;
