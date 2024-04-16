@@ -38,17 +38,19 @@ typedef enum {
     NODE_LOGICAL_HOLDER, // Holder for logical structure
 } NodeType;
 
+typedef struct Redirection {
+    char* filename;
+    struct Redirection* next;
+} Redirection;
 
-// !!!! Peut etre un char** plutot que un char* pour int out append
-// Define ASTNode structure
 typedef struct ASTNode {
     NodeType type;
-    char *value; // Stores the command or argument
-    struct ASTNode *left; // Used for binary trees (commands and pipes)
-    struct ASTNode *right; // Chaining arguments or operations
-	char *Input;
-	char *Output;
-	char *Append;
+    char* value;
+    struct ASTNode* left;
+    struct ASTNode* right;
+    Redirection* inputs;
+    Redirection* outputs;
+    Redirection* appends;
 } ASTNode;
 
 typedef struct LogicalNode {

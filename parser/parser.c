@@ -96,46 +96,43 @@ void addLogicalNodeToStartNode(StartNode* startNode, Token* tokens) {
     }
 }
 
-// void assignRedirections(ASTNode* commandNode, Token* token) {
-//     // Loop through tokens and assign redirections to the appropriate command node.
-//     while (token != NULL) {
-//         switch (token->type) {
-//             case TOKEN_REDIRECTION_IN:
-//                 commandNode->Input = token->value;
-//                 break;
-//             case TOKEN_REDIRECTION_OUT:
-//                 commandNode->Output = token->value;
-//                 break;
-//             case TOKEN_REDIRECTION_APPEND:
-//                 commandNode->Append = token->value;
-//                 break;
-//             default:
-//                 // For non-redirection tokens, you would typically create or traverse command nodes.
-//                 // This is simplified and should be expanded based on your AST generation logic.
-//                 break;
-//         }
-//         token = token->next;
-//     }
-// }
+Redirection* createRedirection(char* filename) {
+    Redirection* redir = (Redirection*)malloc(sizeof(Redirection));
+    if (!redir) {
+        perror("Failed to allocate memory for Redirection");
+        exit(EXIT_FAILURE);
+    }
+    redir->filename = strdup(filename);
+    redir->next = NULL;
+    return redir;
+}
 
-// TOKEN_PAREN,
-//     TOKEN_COMMAND,
-// 	TOKEN_PIPE
+void addRedirection(Redirection** list, Redirection* redir) {
+    if (*list == NULL) {
+        *list = redir;
+    } else {
+        Redirection* current = *list;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = redir;
+    }
+}
 
-
-// This function is a helper to handle command and pipe nodes.
 ASTNode* buildCommandPipeTree(Token** currentToken) {
     ASTNode* root = NULL;
-    ASTNode* current = NULL;
+    ASTNode* currentCommand = NULL;
 
     while (*currentToken != NULL && (*currentToken)->type != TOKEN_LOGICAL_AND && (*currentToken)->type != TOKEN_LOGICAL_OR) {
         if ((*currentToken)->type == TOKEN_COMMAND) {
             ASTNode* commandNode = createASTNode(NODE_COMMAND, (*currentToken)->value);
+            commandNode->inputs = NULL;
+            commandNode->outputs = NULL;
+            commandNode->appends = NULL;
 
             if (root == NULL) {
                 root = commandNode;
             } else {
-                // Attach commandNode to the rightmost leaf of the tree.
                 ASTNode* rightmost = root;
                 while (rightmost->right != NULL) {
                     rightmost = rightmost->right;
@@ -143,22 +140,23 @@ ASTNode* buildCommandPipeTree(Token** currentToken) {
                 rightmost->right = commandNode;
             }
 
-            current = commandNode;
+            currentCommand = commandNode;
         } else if ((*currentToken)->type == TOKEN_PIPE) {
-            // Create a new pipe node.
             ASTNode* pipeNode = createASTNode(NODE_PIPE, "|");
-            pipeNode->left = root; // The current root is the left child of the pipe.
-
-            // The new root is now the pipe node.
+            pipeNode->left = root;
             root = pipeNode;
-            current = NULL; // Reset current as we're now dealing with a pipe.
-        } else if (current != NULL && ( (*currentToken)->type == TOKEN_REDIRECTION_IN ||
-                                        (*currentToken)->type == TOKEN_REDIRECTION_OUT ||
-                                        (*currentToken)->type == TOKEN_REDIRECTION_APPEND)) {
-            // Set redirections for the current command.
-            if ((*currentToken)->type == TOKEN_REDIRECTION_IN) current->Input = (*currentToken)->value;
-            if ((*currentToken)->type == TOKEN_REDIRECTION_OUT) current->Output = (*currentToken)->value;
-            if ((*currentToken)->type == TOKEN_REDIRECTION_APPEND) current->Append = (*currentToken)->value;
+            currentCommand = NULL;
+        } else if (currentCommand != NULL && ((*currentToken)->type == TOKEN_REDIRECTION_IN ||
+                                              (*currentToken)->type == TOKEN_REDIRECTION_OUT ||
+                                              (*currentToken)->type == TOKEN_REDIRECTION_APPEND)) {
+            Redirection* newRedir = createRedirection((*currentToken)->value);
+            if ((*currentToken)->type == TOKEN_REDIRECTION_IN) {
+                addRedirection(&currentCommand->inputs, newRedir);
+            } else if ((*currentToken)->type == TOKEN_REDIRECTION_OUT) {
+                addRedirection(&currentCommand->outputs, newRedir);
+            } else if ((*currentToken)->type == TOKEN_REDIRECTION_APPEND) {
+                addRedirection(&currentCommand->appends, newRedir);
+            }
         }
 
         *currentToken = (*currentToken)->next;
