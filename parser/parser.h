@@ -54,6 +54,7 @@ typedef struct ASTNode {
     Redirection* inputs;
     Redirection* outputs;
     Redirection* appends;
+	bool builtIn;
 } ASTNode;
 
 typedef struct LogicalNode {

@@ -60,6 +60,7 @@ ASTNode* createASTNode(NodeType type, char* value) {
     node->outputs = NULL;
     node->appends = NULL;
 	node->here_doc = NULL;
+	node->builtIn = false;
     return node;
 }
 
