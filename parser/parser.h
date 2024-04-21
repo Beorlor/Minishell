@@ -13,6 +13,7 @@ typedef enum {
     TOKEN_LOGICAL_AND,
     TOKEN_LOGICAL_OR,
     TOKEN_PIPE,
+	TOKEN_HEREDOC,
     TOKEN_REDIRECTION_IN,
     TOKEN_REDIRECTION_OUT,
     TOKEN_REDIRECTION_APPEND,
@@ -31,6 +32,7 @@ Token *lexer();
 // Define node types
 typedef enum {
     NODE_COMMAND,
+	NODE_EMPTY_COMMAND,
 	NODE_PARENTHESE,
     NODE_LOGICAL_AND,
     NODE_LOGICAL_OR,
@@ -48,6 +50,7 @@ typedef struct ASTNode {
     char* value;
     struct ASTNode* left;
     struct ASTNode* right;
+	Redirection* here_doc;
     Redirection* inputs;
     Redirection* outputs;
     Redirection* appends;

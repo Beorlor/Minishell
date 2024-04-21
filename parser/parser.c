@@ -120,30 +120,26 @@ void addRedirection(Redirection** list, Redirection* redir) {
 }
 
 ASTNode* buildCommandPipeTree(Token** currentToken) {
-    ASTNode* root = NULL;
-    ASTNode* currentCommand = NULL;
-    Redirection* tempInputs = NULL;
-    Redirection* tempOutputs = NULL;
-    Redirection* tempAppends = NULL;
+    ASTNode *root = NULL, *currentCommand = NULL;
+    Redirection *tempInputs = NULL, *tempOutputs = NULL, *tempAppends = NULL, *tempHereDoc = NULL;
 
-    while (*currentToken != NULL) {
+    while (*currentToken) {
         switch ((*currentToken)->type) {
             case TOKEN_COMMAND:
-                // Create a new command node and attach any pending redirections
-                currentCommand = createASTNode(NODE_COMMAND, (*currentToken)->value);
+            case TOKEN_PAREN: // Handle both commands and parentheses similarly
+                currentCommand = createASTNode((*currentToken)->type == TOKEN_COMMAND ? NODE_COMMAND : NODE_PARENTHESE, (*currentToken)->value);
+                // Attach redirections
                 currentCommand->inputs = tempInputs;
                 currentCommand->outputs = tempOutputs;
                 currentCommand->appends = tempAppends;
-                tempInputs = tempOutputs = tempAppends = NULL; // Clear the temporary storage
-
-                if (root == NULL) {
-                    root = currentCommand; // First command in the sequence
-                } else {
-                    // Attach the current command to the rightmost part of the tree
+                currentCommand->here_doc = tempHereDoc;
+                // Reset temp variables
+                tempInputs = tempOutputs = tempAppends = tempHereDoc = NULL;
+                if (!root) root = currentCommand; // First node in tree
+                else {
+                    // Attach to the rightmost node
                     ASTNode* rightmost = root;
-                    while (rightmost->right != NULL) {
-                        rightmost = rightmost->right;
-                    }
+                    while (rightmost->right) rightmost = rightmost->right;
                     rightmost->right = currentCommand;
                 }
                 break;
@@ -151,68 +147,54 @@ ASTNode* buildCommandPipeTree(Token** currentToken) {
             case TOKEN_PIPE:
             case TOKEN_LOGICAL_AND:
             case TOKEN_LOGICAL_OR:
-                // Finalize the last command with redirections before moving on
-                if (currentCommand != NULL) {
+                // If there's no current command and redirections exist, create an empty command node
+                if (!currentCommand && (tempInputs || tempOutputs || tempAppends || tempHereDoc)) {
+                    currentCommand = createASTNode(NODE_EMPTY_COMMAND, NULL);
                     currentCommand->inputs = tempInputs;
                     currentCommand->outputs = tempOutputs;
                     currentCommand->appends = tempAppends;
-                } else {
-                    // No current command to attach to, free redirections
-                    freeRedirectionList(&tempInputs);
-                    freeRedirectionList(&tempOutputs);
-                    freeRedirectionList(&tempAppends);
+                    currentCommand->here_doc = tempHereDoc;
                 }
-
                 if ((*currentToken)->type == TOKEN_PIPE) {
-                    // Create a new pipe node and reset the current command
+                    // Create a new pipe node
                     ASTNode* pipeNode = createASTNode(NODE_PIPE, "|");
                     pipeNode->left = root;
                     root = pipeNode;
-                    currentCommand = NULL;
-                } else {
-                    // For logical operators, simply exit the loop
-                    return root;
-                }
-                // Reset redirection lists
-                tempInputs = tempOutputs = tempAppends = NULL;
+                    currentCommand = NULL; // Reset for next command sequence
+                } else return root; // For logical operators, end tree building
                 break;
 
             case TOKEN_REDIRECTION_IN:
             case TOKEN_REDIRECTION_OUT:
             case TOKEN_REDIRECTION_APPEND:
-                // Handle redirection tokens
+            case TOKEN_HEREDOC:
+                // Create and link the appropriate redirection
                 Redirection* newRedir = createRedirection((*currentToken)->value);
-                if ((*currentToken)->type == TOKEN_REDIRECTION_IN) {
-                    addRedirection(&tempInputs, newRedir);
-                } else if ((*currentToken)->type == TOKEN_REDIRECTION_OUT) {
-                    addRedirection(&tempOutputs, newRedir);
-                } else if ((*currentToken)->type == TOKEN_REDIRECTION_APPEND) {
-                    addRedirection(&tempAppends, newRedir);
-                }
-                break;
-
-            default:
-                // Possibly handle unexpected token types or errors
+                if ((*currentToken)->type == TOKEN_REDIRECTION_IN) addRedirection(&tempInputs, newRedir);
+                else if ((*currentToken)->type == TOKEN_REDIRECTION_OUT) addRedirection(&tempOutputs, newRedir);
+                else if ((*currentToken)->type == TOKEN_REDIRECTION_APPEND) addRedirection(&tempAppends, newRedir);
+                else if ((*currentToken)->type == TOKEN_HEREDOC) tempHereDoc = newRedir; // Handle heredoc uniquely
                 break;
         }
-
-        *currentToken = (*currentToken)->next; // Move to the next token
+        *currentToken = (*currentToken)->next; // Move to next token
     }
 
-    // If ending without a logical operator, handle any remaining command redirections
-    if (currentCommand != NULL) {
+    // Attach remaining redirections to the last command
+    if (currentCommand) {
         currentCommand->inputs = tempInputs;
         currentCommand->outputs = tempOutputs;
         currentCommand->appends = tempAppends;
+        currentCommand->here_doc = tempHereDoc;
     } else {
-        // Clean up any remaining redirections if no final command is found
+        // Free unused redirections if no commands were finally formed
         freeRedirectionList(&tempInputs);
         freeRedirectionList(&tempOutputs);
         freeRedirectionList(&tempAppends);
+        freeRedirectionList(&tempHereDoc);
     }
-
     return root;
 }
+
 
 void generateAndAttachBTree(StartNode* startNode, Token* tokens) {
     if (!startNode->hasLogical) {

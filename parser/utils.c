@@ -1,18 +1,8 @@
 #include "parser.h"
 
-const char* getNodeTypeString(NodeType type) {
-    switch (type) {
-        case NODE_COMMAND: return "COMMAND";
-		case NODE_PARENTHESE : return "PARENTHESE";
-        case NODE_LOGICAL_AND: return "LOGICAL_AND";
-        case NODE_LOGICAL_OR: return "LOGICAL_OR";
-        case NODE_PIPE: return "PIPE";
-        case NODE_LOGICAL_HOLDER: return "LOGICAL_HOLDER";
-        default: return "UNKNOWN";
-    }
-}
+#include "parser.h"
 
-// Helper function to print redirections nicely
+// Helper function to print redirection lists
 void printRedirections(const Redirection* redir) {
     const char* sep = "";
     while (redir) {
@@ -22,44 +12,65 @@ void printRedirections(const Redirection* redir) {
     }
 }
 
+// Function to get a string representation of the node type
+const char* getNodeTypeString(NodeType type) {
+    switch (type) {
+        case NODE_COMMAND: return "COMMAND";
+        case NODE_PARENTHESE: return "PARENTHESE";
+        case NODE_EMPTY_COMMAND: return "EMPTY COMMAND";
+        case NODE_LOGICAL_AND: return "LOGICAL AND";
+        case NODE_LOGICAL_OR: return "LOGICAL OR";
+        case NODE_PIPE: return "PIPE";
+        case NODE_LOGICAL_HOLDER: return "LOGICAL HOLDER";
+        default: return "UNKNOWN";
+    }
+}
+
 // Recursive function to print the AST nodes with indentation for better visualization
 void printAST(const ASTNode* node, int level) {
     if (!node) return;
 
-    // Print right subtree first (for right-to-left visual structure)
-    printAST(node->right, level + 1);
+    // Indentation for current level
+    char indent[4 * level + 1];
+    memset(indent, ' ', 4 * level);
+    indent[4 * level] = '\0';
 
-    // Print spaces for current level indentation
-    for (int i = 0; i < level; i++) printf("    ");
+    // Print left subtree first
+    printAST(node->left, level + 1);
 
-    // Print the node type and any associated values or redirections
-    printf("%s", getNodeTypeString(node->type));
-    if (node->type == NODE_COMMAND || node->type == NODE_PARENTHESE) {
-        printf(": %s", node->value ? node->value : "NULL");
-        if (node->inputs || node->outputs || node->appends) {
-            printf(" [");
-            if (node->inputs) {
-                printf("In: ");
-                printRedirections(node->inputs);
-            }
-            if (node->outputs) {
-                printf("; Out: ");
-                printRedirections(node->outputs);
-            }
-            if (node->appends) {
-                printf("; Append: ");
-                printRedirections(node->appends);
-            }
-            printf("]");
+    // Print the current node
+    printf("%s%s", indent, getNodeTypeString(node->type));
+    if (node->value) {
+        printf(": %s", node->value);
+    }
+    if (node->inputs || node->outputs || node->appends || node->here_doc) {
+        printf(" [");
+        if (node->inputs) {
+            printf("In: ");
+            printRedirections(node->inputs);
         }
+        if (node->outputs) {
+            printf("; Out: ");
+            printRedirections(node->outputs);
+        }
+        if (node->appends) {
+            printf("; Append: ");
+            printRedirections(node->appends);
+        }
+        if (node->here_doc) {
+            printf("; HereDoc: ");
+            printRedirections(node->here_doc);
+        }
+        printf("]");
     }
     printf("\n");
 
-    // Print left subtree last (to maintain the correct order visually)
-    printAST(node->left, level + 1);
+    // Print right subtree last
+    printAST(node->right, level + 1);
 }
 
-// Central function to print the entire AST, including logical nodes
+
+// Function to print the entire AST including logical nodes
 void printEntireAST(const StartNode* startNode) {
     if (!startNode || !startNode->children) {
         printf("No AST data available to display.\n");
@@ -83,6 +94,7 @@ void printEntireAST(const StartNode* startNode) {
         }
     }
 }
+
 
 void	free_lexer(Token **lexer)
 {
