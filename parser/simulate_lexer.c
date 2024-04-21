@@ -68,7 +68,7 @@ Token *lexer() {
 	appendToken(&tokens, TOKEN_PIPE, NULL);
 	appendToken(&tokens, TOKEN_REDIRECTION_IN, "files3.txt");
 	appendToken(&tokens, TOKEN_PIPE, NULL);
-	appendToken(&tokens, TOKEN_COMMAND, "cat");
+	appendToken(&tokens, TOKEN_COMMAND, "cat result");
 
     printTokens(tokens);
 

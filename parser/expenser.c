@@ -1,77 +1,80 @@
 #include "parser.h"
 
-void processBinaryTree(ASTNode* node, void (*processNode)(ASTNode*)) {
+void processBinaryTree(ASTNode* node, void (*processStr)(char**)) {
     if (node == NULL) return;
 
-    // Process in-order to handle left dependencies first
-    processBinaryTree(node->left, processNode);
+    // Process the left subtree first
+    processBinaryTree(node->left, processStr);
 
-    // Process this node
-    processNode(node);
+    // Process the command value only for COMMAND nodes
+    if (node->type == NODE_COMMAND) {
+        processStr(&node->value);
+    }
 
-    // Process right subtree
-    processBinaryTree(node->right, processNode);
+    // Process all redirections except for heredoc
+    Redirection* redir = node->inputs;
+    while (redir) {
+        processStr(&redir->filename);
+        redir = redir->next;
+    }
+
+    redir = node->outputs;
+    while (redir) {
+        processStr(&redir->filename);
+        redir = redir->next;
+    }
+
+    redir = node->appends;
+    while (redir) {
+        processStr(&redir->filename);
+        redir = redir->next;
+    }
+
+    // Process the right subtree last
+    processBinaryTree(node->right, processStr);
 }
 
-void expandCommandTrees(StartNode* startNode, void (*processNode)(ASTNode*)) {
+void expandCommandTrees(StartNode* startNode, void (*processStr)(char**)) {
     if (!startNode->hasLogical) {
         // If there are no logical operators, process the entire tree under the HOLDER node.
-        processBinaryTree(startNode->children[0]->left, processNode);
+        processBinaryTree(startNode->children[0]->left, processStr);
     } else {
         // If logical operators are present, process each tree attached to the logical nodes.
         for (int i = 0; i < startNode->childCount; i++) {
             if (startNode->children[i]->left) {
-                processBinaryTree(startNode->children[i]->left, processNode);
+                processBinaryTree(startNode->children[i]->left, processStr);
             }
             if (i == 0 && startNode->children[i]->right) {
-                // For the first logical node, process the right subtree as well.
-                processBinaryTree(startNode->children[i]->right, processNode);
+                // For the first logical node, also process the right subtree
+                processBinaryTree(startNode->children[i]->right, processStr);
             }
         }
     }
 }
 
-void printCommandNode(ASTNode* node) {
-    if (node->type == NODE_COMMAND || node->type == NODE_PARENTHESE || node->type == NODE_EMPTY_COMMAND) {
-        printf("Processing Node: %s\n", node->value ? node->value : "Empty Command");
-    }
+
+void printCommandNode(char **str) {
+	printf("%s\n", *str);
 }
 
-void expandWildcards(ASTNode* node) {
-    if (node && node->value) {
-        // Example pseudo-function to expand wildcards
-        char* expanded = expand_wildcard(node->value);
-        free(node->value);
-        node->value = expanded;
-    }
-}
-
-void expandDot(ASTNode* node) {
+void expandWildcards(char **str) {
 
 }
 
-void convertPathToAbsolute(ASTNode* node) {
-    if (node && node->value) {
-        char* absolutePath = convert_to_absolute_path(node->value);
-        free(node->value);
-        node->value = absolutePath;
-    }
+void expandDot(char **str) {
+
 }
 
-void replaceEnvVars(ASTNode* node) {
-    if (node && node->value) {
-        char* replaced = replace_env_vars(node->value);
-        free(node->value);
-        node->value = replaced;
-    }
+void convertPathToAbsolute(char **str) {
+
 }
 
-void detectBuiltInCommands(ASTNode* node) {
-    if (node && node->value) {
-        if (is_builtin_command(node->value)) {
-            node->builtIn = true;
-        }
-    }
+void replaceEnvVars(char **str) {
+
+}
+
+void detectBuiltInCommands(char **str) {
+
 }
 
 
