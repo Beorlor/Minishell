@@ -251,6 +251,8 @@ int main() {
 
     printEntireAST(startNode);
 
+	expenser(startNode);
+
 	//printf("%s\n", startNode->children[0]->left->left->value);
 
     free_lexer(&tokens);

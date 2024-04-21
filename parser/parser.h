@@ -73,5 +73,6 @@ typedef struct StartNode {
 void	free_lexer(Token **lexer);
 void printEntireAST(const StartNode* startNode);
 void freeRedirectionList(Redirection** list);
+void expenser(StartNode* startNode);
 
 #endif
