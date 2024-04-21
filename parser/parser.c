@@ -59,6 +59,7 @@ ASTNode* createASTNode(NodeType type, char* value) {
     node->inputs = NULL;
     node->outputs = NULL;
     node->appends = NULL;
+	node->here_doc = NULL;
     return node;
 }
 
@@ -120,78 +121,93 @@ void addRedirection(Redirection** list, Redirection* redir) {
 }
 
 ASTNode* buildCommandPipeTree(Token** currentToken) {
-    ASTNode *root = NULL, *currentCommand = NULL;
-    Redirection *tempInputs = NULL, *tempOutputs = NULL, *tempAppends = NULL, *tempHereDoc = NULL;
+    ASTNode* root = NULL, *currentCommand = NULL;
+    Redirection* tempInputs = NULL, *tempOutputs = NULL, *tempAppends = NULL, *tempHereDoc = NULL;
 
     while (*currentToken) {
         switch ((*currentToken)->type) {
             case TOKEN_COMMAND:
-            case TOKEN_PAREN: // Handle both commands and parentheses similarly
+            case TOKEN_PAREN:
+                // Create command or parenthetical node
                 currentCommand = createASTNode((*currentToken)->type == TOKEN_COMMAND ? NODE_COMMAND : NODE_PARENTHESE, (*currentToken)->value);
-                // Attach redirections
+                // Attach any pending redirections
                 currentCommand->inputs = tempInputs;
                 currentCommand->outputs = tempOutputs;
                 currentCommand->appends = tempAppends;
                 currentCommand->here_doc = tempHereDoc;
-                // Reset temp variables
+                // Reset redirections
                 tempInputs = tempOutputs = tempAppends = tempHereDoc = NULL;
-                if (!root) root = currentCommand; // First node in tree
-                else {
-                    // Attach to the rightmost node
-                    ASTNode* rightmost = root;
-                    while (rightmost->right) rightmost = rightmost->right;
-                    rightmost->right = currentCommand;
+                // Insert the node into the tree
+                if (root == NULL) {
+                    root = currentCommand;
+                } else {
+                    ASTNode* last = root;
+                    while (last->right) last = last->right;
+                    last->right = currentCommand;
                 }
                 break;
 
             case TOKEN_PIPE:
             case TOKEN_LOGICAL_AND:
             case TOKEN_LOGICAL_OR:
-                // If there's no current command and redirections exist, create an empty command node
+                // Handle empty commands between pipes or before logical operators
                 if (!currentCommand && (tempInputs || tempOutputs || tempAppends || tempHereDoc)) {
                     currentCommand = createASTNode(NODE_EMPTY_COMMAND, NULL);
                     currentCommand->inputs = tempInputs;
                     currentCommand->outputs = tempOutputs;
                     currentCommand->appends = tempAppends;
                     currentCommand->here_doc = tempHereDoc;
+                    if (root == NULL) {
+                        root = currentCommand;
+                    } else {
+                        ASTNode* last = root;
+                        while (last->right) last = last->right;
+                        last->right = currentCommand;
+                    }
                 }
+                // Reset current command after handling pipes
                 if ((*currentToken)->type == TOKEN_PIPE) {
-                    // Create a new pipe node
                     ASTNode* pipeNode = createASTNode(NODE_PIPE, "|");
                     pipeNode->left = root;
                     root = pipeNode;
-                    currentCommand = NULL; // Reset for next command sequence
-                } else return root; // For logical operators, end tree building
+                    currentCommand = NULL;
+                } else {
+                    return root; // Break the loop and return for logical operators
+                }
+                // Reset redirections after they've been assigned
+                tempInputs = tempOutputs = tempAppends = tempHereDoc = NULL;
                 break;
 
             case TOKEN_REDIRECTION_IN:
             case TOKEN_REDIRECTION_OUT:
             case TOKEN_REDIRECTION_APPEND:
             case TOKEN_HEREDOC:
-                // Create and link the appropriate redirection
                 Redirection* newRedir = createRedirection((*currentToken)->value);
                 if ((*currentToken)->type == TOKEN_REDIRECTION_IN) addRedirection(&tempInputs, newRedir);
                 else if ((*currentToken)->type == TOKEN_REDIRECTION_OUT) addRedirection(&tempOutputs, newRedir);
                 else if ((*currentToken)->type == TOKEN_REDIRECTION_APPEND) addRedirection(&tempAppends, newRedir);
-                else if ((*currentToken)->type == TOKEN_HEREDOC) tempHereDoc = newRedir; // Handle heredoc uniquely
+                else if ((*currentToken)->type == TOKEN_HEREDOC) tempHereDoc = newRedir;  // Handle heredoc specially
                 break;
         }
-        *currentToken = (*currentToken)->next; // Move to next token
+        *currentToken = (*currentToken)->next;  // Move to the next token
     }
 
-    // Attach remaining redirections to the last command
-    if (currentCommand) {
+    // Final command node setup
+    if (currentCommand == NULL && (tempInputs || tempOutputs || tempAppends || tempHereDoc)) {
+        currentCommand = createASTNode(NODE_EMPTY_COMMAND, NULL);
         currentCommand->inputs = tempInputs;
         currentCommand->outputs = tempOutputs;
         currentCommand->appends = tempAppends;
         currentCommand->here_doc = tempHereDoc;
-    } else {
-        // Free unused redirections if no commands were finally formed
-        freeRedirectionList(&tempInputs);
-        freeRedirectionList(&tempOutputs);
-        freeRedirectionList(&tempAppends);
-        freeRedirectionList(&tempHereDoc);
+        if (root == NULL) {
+            root = currentCommand;
+        } else {
+            ASTNode* last = root;
+            while (last->right) last = last->right;
+            last->right = currentCommand;
+        }
     }
+
     return root;
 }
 
@@ -233,6 +249,8 @@ int main() {
     generateAndAttachBTree(startNode, tokens);
 
     printEntireAST(startNode);
+
+	//printf("%s\n", startNode->children[0]->left->left->value);
 
     free_lexer(&tokens);
 

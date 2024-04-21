@@ -1,23 +1,11 @@
 #include "parser.h"
 
-#include "parser.h"
-
-// Helper function to print redirection lists
-void printRedirections(const Redirection* redir) {
-    const char* sep = "";
-    while (redir) {
-        printf("%s%s", sep, redir->filename);
-        sep = ", ";
-        redir = redir->next;
-    }
-}
-
 // Function to get a string representation of the node type
 const char* getNodeTypeString(NodeType type) {
     switch (type) {
         case NODE_COMMAND: return "COMMAND";
-        case NODE_PARENTHESE: return "PARENTHESE";
         case NODE_EMPTY_COMMAND: return "EMPTY COMMAND";
+        case NODE_PARENTHESE: return "PARENTHESE";
         case NODE_LOGICAL_AND: return "LOGICAL AND";
         case NODE_LOGICAL_OR: return "LOGICAL OR";
         case NODE_PIPE: return "PIPE";
@@ -26,40 +14,44 @@ const char* getNodeTypeString(NodeType type) {
     }
 }
 
-// Recursive function to print the AST nodes with indentation for better visualization
-void printAST(const ASTNode* node, int level) {
-    if (!node) return;
+// Helper function to print redirections with proper formatting
+void printRedirections(const Redirection* redir) {
+    const char* sep = "";  // Start with no separator
+    while (redir) {
+        printf("%s%s", sep, redir->filename);
+        sep = ", ";  // Update separator after the first item
+        redir = redir->next;
+    }
+}
 
-    // Indentation for current level
-    char indent[4 * level + 1];
-    memset(indent, ' ', 4 * level);
-    indent[4 * level] = '\0';
+void printAST(const ASTNode* node, int level) {
+    if (node == NULL) return;
 
     // Print left subtree first
     printAST(node->left, level + 1);
 
-    // Print the current node
-    printf("%s%s", indent, getNodeTypeString(node->type));
+    // Print current node with indentation
+    printf("%*s%s", level * 4, "", getNodeTypeString(node->type));
     if (node->value) {
         printf(": %s", node->value);
     }
     if (node->inputs || node->outputs || node->appends || node->here_doc) {
         printf(" [");
+        bool first = true;
         if (node->inputs) {
-            printf("In: ");
-            printRedirections(node->inputs);
+            printf("In: %s", node->inputs->filename);
+            first = false;
         }
         if (node->outputs) {
-            printf("; Out: ");
-            printRedirections(node->outputs);
+            printf("%sOut: %s", first ? "" : "; ", node->outputs->filename);
+            first = false;
         }
         if (node->appends) {
-            printf("; Append: ");
-            printRedirections(node->appends);
+            printf("%sAppend: %s", first ? "" : "; ", node->appends->filename);
+            first = false;
         }
         if (node->here_doc) {
-            printf("; HereDoc: ");
-            printRedirections(node->here_doc);
+            printf("%sHereDoc: %s", first ? "" : "; ", node->here_doc->filename);
         }
         printf("]");
     }
@@ -69,8 +61,6 @@ void printAST(const ASTNode* node, int level) {
     printAST(node->right, level + 1);
 }
 
-
-// Function to print the entire AST including logical nodes
 void printEntireAST(const StartNode* startNode) {
     if (!startNode || !startNode->children) {
         printf("No AST data available to display.\n");
@@ -80,21 +70,34 @@ void printEntireAST(const StartNode* startNode) {
     printf("Complete Abstract Syntax Tree:\n");
     for (int i = 0; i < startNode->childCount; ++i) {
         LogicalNode* logicalNode = startNode->children[i];
-        printf("Subtree %d:\n", i + 1);
+
+        // Print logical node at the beginning for all except the first node
+        if (i > 0) {
+            printf("Subtree %d:\n", i + 1);
+            printf("Logical Node (%s):\n", getNodeTypeString(logicalNode->type));
+        }
+
         if (logicalNode->left) {
             printf("Left:\n");
             printAST(logicalNode->left, 1);
         }
-        if (logicalNode->type != NODE_LOGICAL_HOLDER) {
+
+        // Print logical node for the first subtree in the middle
+        if (i == 0 && logicalNode->type != NODE_LOGICAL_HOLDER) {
             printf("Logical Node (%s):\n", getNodeTypeString(logicalNode->type));
         }
+
         if (logicalNode->right) {
             printf("Right:\n");
             printAST(logicalNode->right, 1);
         }
+
+        // Separate the subtrees visually
+        if (i < startNode->childCount - 1) {
+            printf("\n");
+        }
     }
 }
-
 
 void	free_lexer(Token **lexer)
 {

@@ -53,20 +53,22 @@ Token *lexer() {
 
     // Simulate tokens for "ls -l | grep "txt" > files.txt"
     appendToken(&tokens, TOKEN_COMMAND, "ls -l");
-    appendToken(&tokens, TOKEN_PIPE, "|");
+    appendToken(&tokens, TOKEN_PIPE, NULL);
     appendToken(&tokens, TOKEN_PAREN, "grep txt | cat");
     appendToken(&tokens, TOKEN_REDIRECTION_OUT, "files1.txt");
-	appendToken(&tokens, TOKEN_LOGICAL_AND, "&&");
+	appendToken(&tokens, TOKEN_LOGICAL_AND, NULL);
 	appendToken(&tokens, TOKEN_REDIRECTION_IN, "files2.txt");
 	appendToken(&tokens, TOKEN_COMMAND, "cat");
-	appendToken(&tokens, TOKEN_LOGICAL_OR, "||");
+	appendToken(&tokens, TOKEN_LOGICAL_OR, NULL);
 	appendToken(&tokens, TOKEN_REDIRECTION_APPEND, "files3.txt");
 	appendToken(&tokens, TOKEN_COMMAND, "wc -l");
-	appendToken(&tokens, TOKEN_LOGICAL_OR, "||");
+	appendToken(&tokens, TOKEN_LOGICAL_OR, NULL);
 	appendToken(&tokens, TOKEN_HEREDOC, "files4.txt");
 	appendToken(&tokens, TOKEN_COMMAND, "test");
-	appendToken(&tokens, TOKEN_PIPE, "|");
-	appendToken(&tokens, TOKEN_COMMAND, "test2");
+	appendToken(&tokens, TOKEN_PIPE, NULL);
+	appendToken(&tokens, TOKEN_REDIRECTION_IN, "files3.txt");
+	appendToken(&tokens, TOKEN_PIPE, NULL);
+	appendToken(&tokens, TOKEN_COMMAND, "cat");
 
     printTokens(tokens);
 
