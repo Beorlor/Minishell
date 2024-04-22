@@ -17,7 +17,6 @@ typedef enum {
     TOKEN_REDIRECTION_IN,
     TOKEN_REDIRECTION_OUT,
     TOKEN_REDIRECTION_APPEND,
-    TOKEN_WILDCARD,
 } TokenType;
 
 typedef struct Token {

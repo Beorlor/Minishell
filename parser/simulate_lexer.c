@@ -35,7 +35,6 @@ const char* getTokenTypeName(TokenType type) {
         case TOKEN_REDIRECTION_IN: return "TOKEN_REDIRECTION_IN";
         case TOKEN_REDIRECTION_OUT: return "TOKEN_REDIRECTION_OUT";
         case TOKEN_REDIRECTION_APPEND: return "TOKEN_REDIRECTION_APPEND";
-        case TOKEN_WILDCARD: return "TOKEN_WILDCARD";
         default: return "UNKNOWN_TOKEN";
     }
 }

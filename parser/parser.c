@@ -180,15 +180,21 @@ ASTNode* buildCommandPipeTree(Token** currentToken) {
                 break;
 
             case TOKEN_REDIRECTION_IN:
-            case TOKEN_REDIRECTION_OUT:
-            case TOKEN_REDIRECTION_APPEND:
-            case TOKEN_HEREDOC:
+    		case TOKEN_REDIRECTION_OUT:
+        	case TOKEN_REDIRECTION_APPEND:
+        	case TOKEN_HEREDOC:
+            {
                 Redirection* newRedir = createRedirection((*currentToken)->value);
-                if ((*currentToken)->type == TOKEN_REDIRECTION_IN) addRedirection(&tempInputs, newRedir);
-                else if ((*currentToken)->type == TOKEN_REDIRECTION_OUT) addRedirection(&tempOutputs, newRedir);
-                else if ((*currentToken)->type == TOKEN_REDIRECTION_APPEND) addRedirection(&tempAppends, newRedir);
-                else if ((*currentToken)->type == TOKEN_HEREDOC) tempHereDoc = newRedir;  // Handle heredoc specially
-                break;
+                if ((*currentToken)->type == TOKEN_REDIRECTION_IN)
+                    addRedirection(&tempInputs, newRedir);
+                else if ((*currentToken)->type == TOKEN_REDIRECTION_OUT)
+                    addRedirection(&tempOutputs, newRedir);
+                else if ((*currentToken)->type == TOKEN_REDIRECTION_APPEND)
+                    addRedirection(&tempAppends, newRedir);
+                else if ((*currentToken)->type == TOKEN_HEREDOC)
+                    addRedirection(&tempHereDoc, newRedir);
+            }
+            break;
         }
         *currentToken = (*currentToken)->next;  // Move to the next token
     }
