@@ -57,11 +57,31 @@ void printCommandNode(char **str) {
 	printf("%s\n", *str);
 }
 
-void expandWildcards(char **str) {
 
+void is_last_command_btree(ASTNode* node) {
+    if (node == NULL) return;
+
+	while (node->right != NULL)
+	{
+		node = node->right;
+	}
+    bool isLastCommand = true;
 }
 
-void expandDot(char **str) {
+void is_last_command(StartNode* startNode) {
+    if (!startNode->hasLogical) {
+        is_last_command_btree(startNode->children[0]->left);
+    } else {
+        for (int i = 0; i < startNode->childCount; i++) {
+            is_last_command_btree(startNode->children[i]->left);
+            if (i == 0 && startNode->children[i]->right) {
+                is_last_command_btree(startNode->children[i]->right);
+            }
+        }
+    }
+}
+
+void manage_redirection(ASTNode *node) {
 
 }
 
