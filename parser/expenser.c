@@ -57,7 +57,6 @@ void printCommandNode(char **str) {
 	printf("%s\n", *str);
 }
 
-
 void is_last_command_btree(ASTNode* node) {
     if (node == NULL) return;
 
@@ -65,7 +64,7 @@ void is_last_command_btree(ASTNode* node) {
 	{
 		node = node->right;
 	}
-    bool isLastCommand = true;
+    node->is_last_command = true;
 }
 
 void is_last_command(StartNode* startNode) {
@@ -81,24 +80,30 @@ void is_last_command(StartNode* startNode) {
     }
 }
 
+// Si node commande, si arguement, supprimer tout les inputs, sinon garder que le dernier
+// Si node parenthese, si arguement premiere commande, supprimer tout les inputs,
+// 	sinon pipe le dernier input, sinon aucun input, envoyer le pipe de la commande precedente
 void manage_redirection(ASTNode *node) {
 
 }
 
+// utiliser la fonction de thomas pour le path actuelle
 void convertPathToAbsolute(char **str) {
 
 }
 
+// utiliser fonction thomas pour les quotes externe
 void replaceEnvVars(char **str) {
 
 }
 
+// utiliser fonction thomas pour les quotes externe
 void detectBuiltInCommands(char **str) {
 
 }
 
-
 void expenser(StartNode* startNode)
 {
 	expandCommandTrees(startNode, printCommandNode);
+	is_last_command(startNode);
 }
