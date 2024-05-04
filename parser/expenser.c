@@ -87,6 +87,11 @@ void manage_redirection(ASTNode *node) {
 
 }
 
+// utiliser fonction thomas pour les quotes externe
+void detectBuiltInCommands(char **str) {
+
+}
+
 // utiliser la fonction de thomas pour le path actuelle
 void convertPathToAbsolute(char **str) {
 
@@ -94,11 +99,6 @@ void convertPathToAbsolute(char **str) {
 
 // utiliser fonction thomas pour les quotes externe
 void replaceEnvVars(char **str) {
-
-}
-
-// utiliser fonction thomas pour les quotes externe
-void detectBuiltInCommands(char **str) {
 
 }
 
